@@ -1,0 +1,26 @@
+*.zip
+*.tiff
+*.pdf
+*.obf
+*.DS_Store
+
+# Ignore IntelliJ IDEA project files
+*.iml
+.idea/
+*.iws
+*.ipr
+
+# Ignore Python Bytecode files
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+
+# Ignore Jupyter Notebook Checkpoints
+.ipynb_checkpoints/
+
+# Ignore Model files
+*.h5
+
+# Ignore specific script names or extensions if needed
+# data/scripts/*.pyc  # Uncomment if you want to exclude .pyc files
