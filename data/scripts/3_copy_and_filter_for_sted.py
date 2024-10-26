@@ -3,14 +3,14 @@ import shutil
 
 # Define the source and destination directories
 source_dir = "/Users/sosen/UniProjects/eng-thesis/data/data-uncompressed/2D-tiff-grouped/"
-destination_dir = "/Users/sosen/UniProjects/eng-thesis/data/data-uncompressed/2D-tiff-grouped-filtered/"
+destination_dir = "/Users/sosen/UniProjects/eng-thesis/data/data-uncompressed/2D-tiff-grouped-filtered-sted/"
 
 
 # Walk through the source directory
 for dirpath, dirs, files in os.walk(source_dir):
     for file in files:
         # Exclude files that contain 'sted' or 'tissue'
-        if 'sted'  in file or 'STED'  in file and 'tissue' not in file:
+        if ('sted'  in file or 'STED'  in file) and 'tissue' not in file:
             # Generate full file paths
             source_file = os.path.join(dirpath, file)
             relative_path = os.path.relpath(dirpath, source_dir)
