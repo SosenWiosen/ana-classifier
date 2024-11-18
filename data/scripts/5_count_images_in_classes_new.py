@@ -1,17 +1,18 @@
-import os;
+import os
+
 def count_images(dst_path):
     result = {}
 
-    for dirpath,_,filenames in os.walk(dst_path):
+    for dirpath, _, filenames in os.walk(dst_path):
         # Store count of base filenames
         if dirpath != dst_path:
             base_filename_count = {}
             for f in filenames:
-                # Check if file is a .tiff file and doesn't contain 'tissue'
-                if f.endswith(".tiff") and 'tissue' not in f:
-                    # Split the filename from the last underscore (_)
-                    base_name = "_".join(f.split("_")[:-1])
-                    # Update count
+                # Check if file is a .tiff file and contains the correct format
+                if f.endswith(".png") and f.startswith("2D ") and 'tissue' not in f:
+                    # Split the filename from the " Image " part
+                    base_name = f.split(' Image ')[0]
+                    # Update count of unique base names
                     base_filename_count[base_name] = base_filename_count.get(base_name, 0) + 1
 
             classname = os.path.basename(dirpath)
@@ -20,12 +21,10 @@ def count_images(dst_path):
     
     return result
 
-dst_path = "/Users/sosen/UniProjects/eng-thesis/data/data-uncompressed/2D-tiff-grouped-filtered"
+dst_path = "/Users/sosen/UniProjects/eng-thesis/data/data-uncompressed/2D-tiff-grouped-filtered-sted"
 
 # Calling the count function
 image_count = count_images(dst_path)
-
-
 
 # Sort the dictionary by its keys (i.e., class names) and print the result
 for classname, count in sorted(image_count.items()):
