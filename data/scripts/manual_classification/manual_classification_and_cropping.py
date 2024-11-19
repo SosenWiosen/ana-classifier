@@ -1,12 +1,27 @@
 import os
 import shutil
 import json
+import tkinter as tk
 from PIL import Image
+from image_cropper import ImageCropper
+from matplotlib import pyplot as plt
 
-# Placeholder for your cropping functionality
-def crop_image(image_path):
-    print(f"Cropping {image_path}... (this is a placeholder)")
-    return image_path  # Return the path for demonstration.
+
+def crop(filepath):
+    def return_cropped_image(cropped_img):
+        nonlocal cropped_image
+        cropped_image = cropped_img
+        image_cropper.root.quit()
+
+    cropped_image = None
+    root = tk.Tk()
+    image_cropper = ImageCropper(root, return_cropped_image)
+    image_cropper.open_image(filepath)
+    root.mainloop()
+
+    # root.destroy()
+
+    return cropped_image
 
 def load_progress(progress_file):
     if os.path.exists(progress_file):
@@ -22,6 +37,8 @@ def classify_images(original_dir, new_dir, progress_file):
     file_map = load_progress(progress_file)
     available_classes = ["AC1", "AC2", "AC3", "AC4"]
     index_counter = {}
+    allowed_extensions = {".tiff", ".png"}
+
 
     for subdir, _, files in os.walk(original_dir):
         for file in files:
@@ -33,11 +50,13 @@ def classify_images(original_dir, new_dir, progress_file):
                 print(f"Skipping already processed file: {relative_path}")
                 continue
 
-            print(f"Processing file: {file} \nRelative path: {relative_path}")
+            # Check for allowable image extensions
+            if not os.path.splitext(file)[1].lower() in allowed_extensions:
+                print(f"Skipping non-image file: {relative_path}")
+                continue
 
-            # Display the image
-            image = Image.open(filepath)
-            image.show()
+            print(f"Processing file: {file} \nRelative path: {relative_path}")
+            Image.open(filepath).show()
 
             # Ask for imaging method
             while True:
@@ -79,7 +98,7 @@ def classify_images(original_dir, new_dir, progress_file):
                 print("Invalid choice, please try again.")
 
             # Prepare the destination directory
-            dest_dir = os.path.join(new_dir, method_dir, image_class)
+            dest_dir = os.path.join(new_dir, "NON-CROPPED", method_dir, image_class)
             os.makedirs(dest_dir, exist_ok=True)
 
             # Prepare the new filename
@@ -103,13 +122,26 @@ def classify_images(original_dir, new_dir, progress_file):
             crop_index = 1
 
             while should_crop:
-                cropped_image_path = crop_image(filepath)  # Placeholder for actual cropping tool
-                if not cropped_image_path:  # If cropping was skipped or cancelled
+                print("Cropping image...")
+                print( "filepath: ", filepath)
+                # Use the crop function to get a cropped image as a PIL Image object
+                cropped_image = crop(filepath)
+                print("Cropped image: ", cropped_image.size)
+                if not cropped_image:
                     break
+                
                 cropped_new_filename = f"{image_class}_{method}_{index_counter[index_key]}_crop{crop_index}.png"
                 cropped_new_file_path = os.path.join(cropped_dir, cropped_new_filename)
-                shutil.copy(cropped_image_path, cropped_new_file_path)
-                file_map[cropped_image_path] = os.path.relpath(cropped_new_file_path, new_dir)
+                
+                # Save the cropped image
+                cropped_image.save(cropped_new_file_path)
+                
+                # Update the file map
+                file_map[os.path.relpath(filepath, original_dir)] = {
+                    "non-cropped": os.path.relpath(filepath, new_dir),
+                    "cropped": os.path.relpath(cropped_new_file_path, new_dir)
+                }
+                
                 crop_index += 1
 
                 should_crop = input("Do you want to crop more objects from this image (y/n)? ").strip().lower() == 'y'
@@ -122,8 +154,8 @@ def classify_images(original_dir, new_dir, progress_file):
     print(f"Classification and cropping complete. File map saved at: {progress_file}")
 
 if __name__ == "__main__":
-    original_directory = input("Enter the original directory path where images are located: ").strip()
-    new_directory = input("Enter the new directory path where categorized images should be saved: ").strip()
+    original_directory = "/Users/sosen/UniProjects/eng-thesis/data/data-uncompressed/2D"
+    new_directory = "/Users/sosen/UniProjects/eng-thesis/data/manual"
     progress_file = os.path.join(new_directory, "file_map.json")
     
     classify_images(original_directory, new_directory, progress_file)
