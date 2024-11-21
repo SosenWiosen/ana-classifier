@@ -17,6 +17,7 @@ def crop(filepath):
     cropped_image = None
     root = tk.Tk()
     image_cropper = ImageCropper(root, return_cropped_image)
+    image_cropper.center_window_on_primary_display(1200,1000)
     image_cropper.open_image(filepath)
     root.mainloop()
 
@@ -136,8 +137,15 @@ def classify_images(original_dir, new_dir, progress_file):
             new_file_path = os.path.join(dest_dir, new_filename)
             shutil.copy(filepath, new_file_path)
 
-            # Save file paths to the map
-            file_map[relative_path] = os.path.relpath(new_file_path, new_dir)
+
+            # Initialize or update the file_map entry
+            if file_relative_path not in file_map or not isinstance(file_map[file_relative_path], dict):
+                # If not initialized or if the data structure is inconsistent, initialize it
+                file_map[file_relative_path] = {
+                    "non-cropped": os.path.relpath(new_file_path, new_dir),
+                    "cropped": [],
+                    "weird": not image_doubts
+                }
 
             # Cropping
             should_crop = True
@@ -157,14 +165,6 @@ def classify_images(original_dir, new_dir, progress_file):
                 cropped_image.save(cropped_new_file_path)
 
                 file_relative_path = os.path.relpath(filepath, original_dir)
-
-                # Initialize `file_map[file_relative_path]` as a dictionary if it doesn't exist
-                if file_relative_path not in file_map or not isinstance(file_map[file_relative_path], dict):
-                    file_map[file_relative_path] = {
-                        "non-cropped": os.path.relpath(filepath, new_dir),
-                        "cropped": [],  # Start with an empty list for cropped images
-                        "weird": not image_doubts
-                    }
 
                 # Append the new cropped file path to the "cropped" list
                 file_map[file_relative_path]["cropped"].append(os.path.relpath(cropped_new_file_path, new_dir))

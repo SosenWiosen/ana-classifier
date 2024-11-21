@@ -46,6 +46,17 @@ class ImageCropper:
         self.crop_coords = None
         self.image = self.displayed_image = self.cropped_image = None
         self.enhanced_image = None  # To store the brightness-adjusted image
+    def center_window_on_primary_display(self, width=800, height=600):
+        # Get the screen dimensions of the primary display
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        
+        # Calculate the x, y position to center the window
+        x = (screen_width - width) // 2
+        y = (screen_height - height) // 2
+        
+        # Set the geometry of the window
+        self.root.geometry(f"{width}x{height}+{x}+{y}")
 
     def open_image(self, filepath):
         self.cleanup()
