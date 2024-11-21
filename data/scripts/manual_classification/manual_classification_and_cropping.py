@@ -5,6 +5,7 @@ import tkinter as tk
 from PIL import Image
 from image_cropper import ImageCropper
 from matplotlib import pyplot as plt
+from termcolor import colored
 
 
 def crop(filepath):
@@ -55,12 +56,12 @@ def classify_images(original_dir, new_dir, progress_file):
                 print(f"Skipping non-image file: {relative_path}")
                 continue
 
-            print(f"Processing file: {file} \nRelative path: {relative_path}")
+            print(colored(f"Processing file: {file} \nRelative path: {relative_path}", 'green', attrs=['bold']))
             Image.open(filepath).show()
 
             # Ask for imaging method
             while True:
-                method_input = input("Is this image STED (1/y) or normal (2/n)? ").strip().lower()
+                method_input = input("\nIs this image STED (1/y) or normal (2/n)? ").strip().lower()
                 if method_input in ('1', 'y', 'sted'):
                     method = "STED"
                     method_dir = "STED"
@@ -75,7 +76,7 @@ def classify_images(original_dir, new_dir, progress_file):
             while True:
                 class_prompt = "\n".join([f"{i+1}. {cls}" for i, cls in enumerate(available_classes)])
                 other_new_start_index = len(available_classes) + 1
-                print("Choose a class: \n" + class_prompt + f"\n{other_new_start_index}. Other")
+                print("\nChoose a class: \n" + class_prompt + f"\n{other_new_start_index}. Other")
                 print(f"{other_new_start_index + 1}. New Class")
 
                 class_choice = input("Class (number): ").strip()
@@ -98,13 +99,13 @@ def classify_images(original_dir, new_dir, progress_file):
                 print("Invalid choice, please try again.")
 
             while True:
-                image_doubts_input = input("Is this image ok? or no (y/n)").strip().lower()
+                image_doubts_input = input("\nIs this image ok? or no (y/n)").strip().lower()
                 if image_doubts_input in ('1', 'y'):
                     image_doubts = True
                     break
                 else:
                     image_doubts = False
-                    print("Invalid choice. Please enter '1', '2', 'y', or 'n'.")
+                    break
 
             # Prepare the destination directory
             dest_dir = os.path.join(new_dir, "NON-CROPPED", method_dir, image_class)
@@ -131,11 +132,11 @@ def classify_images(original_dir, new_dir, progress_file):
             crop_index = 1
 
             while should_crop:
-                print("Cropping image...")
-                print( "filepath: ", filepath)
+                # print("Cropping image...")
+                # print( "filepath: ", filepath)
                 # Use the crop function to get a cropped image as a PIL Image object
                 cropped_image = crop(filepath)
-                print("Cropped image: ", cropped_image.size)
+                # print("Cropped image: ", cropped_image.size)
                 if not cropped_image:
                     break
                 

@@ -51,7 +51,6 @@ class ImageCropper:
         self.cleanup()
         try:
             self.image = Image.open(filepath)
-            print(self.image.size)
             self.display_image(self.image)
             self.crop_button.config(state=tk.NORMAL)
             self.finalize_button.config(state=tk.NORMAL)  # Enable finalize without crop
@@ -65,12 +64,9 @@ class ImageCropper:
         self.canvas.delete("all")
         self.root.update_idletasks()
         max_width, max_height = self.root.winfo_width(), self.root.winfo_height()
-        print("Max width: ", max_width, "Max height: ", max_height)
         self.displayed_image = image.copy()
         self.displayed_image.thumbnail((max_width, max_height), Image.LANCZOS)
         self.tk_image = ImageTk.PhotoImage(self.displayed_image)
-        print("Displayed image size: ", self.displayed_image.size)
-        print("Tk image size: ", self.tk_image.width(), self.tk_image.height())
         self.canvas.create_image(0, 0, anchor=tk.NW, image=self.tk_image)
         self.canvas.config(scrollregion=self.canvas.bbox(tk.ALL))
 
