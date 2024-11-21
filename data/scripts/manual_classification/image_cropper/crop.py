@@ -1,9 +1,9 @@
 import os
 import json
 import tkinter as tk
-from PIL import Image
-from PIL import ImageTk
+from PIL import Image, ImageEnhance, ImageTk
 import tkinter.messagebox as messagebox
+
 
 class ImageCropper:
     def __init__(self, root, callback):
@@ -11,6 +11,8 @@ class ImageCropper:
         self.callback = callback
         self.root.title("Image Cropper")
         self.root.geometry("1000x1000")
+
+        # Top frame for buttons
         self.frame = tk.Frame(root)
         self.frame.pack(side=tk.TOP, fill=tk.X)
 
@@ -23,8 +25,18 @@ class ImageCropper:
         self.info_label = tk.Label(self.frame, text="")
         self.info_label.pack(side=tk.LEFT, padx=5, pady=5)
 
+        # Brightness slider
+        self.brightness_slider = tk.Scale(
+            self.frame, from_=0.1, to=10.0, resolution=0.1, orient=tk.HORIZONTAL, label="Brightness", command=self.adjust_brightness
+        )
+        self.brightness_slider.set(1.0)  # Default value (no brightness change)
+        self.brightness_slider.pack(side=tk.RIGHT, padx=5, pady=5)
+
+        # Canvas for displaying the image
         self.canvas = tk.Canvas(root, cursor="cross", bg="gray")
         self.canvas.pack(fill=tk.BOTH, expand=True)
+
+        # Mouse events for cropping
         self.canvas.bind("<ButtonPress-1>", self.on_button_press)
         self.canvas.bind("<B1-Motion>", self.on_mouse_drag)
         self.canvas.bind("<ButtonRelease-1>", self.on_button_release)
@@ -33,6 +45,7 @@ class ImageCropper:
         self.start_x = self.start_y = 0
         self.crop_coords = None
         self.image = self.displayed_image = self.cropped_image = None
+        self.enhanced_image = None  # To store the brightness-adjusted image
 
     def open_image(self, filepath):
         self.cleanup()
@@ -66,7 +79,7 @@ class ImageCropper:
             self.image.close()
         if self.cropped_image:
             self.cropped_image.close()
-        
+
         self.image = None
         self.displayed_image = None
         self.cropped_image = None
@@ -99,16 +112,25 @@ class ImageCropper:
             self.cropped_image = self.image.crop((x1, y1, x2, y2))
             self.display_image(self.cropped_image)
 
+    def adjust_brightness(self, value):
+        """Adjust the brightness of the displayed image."""
+        if self.image:
+            brightness_factor = float(value)
+            enhancer = ImageEnhance.Brightness(self.image)
+            self.enhanced_image = enhancer.enhance(brightness_factor)
+            self.display_image(self.enhanced_image)
+
     def finalize_crop(self):
         # Return the original image if no cropping was done
         if self.cropped_image:
             image_to_return = self.cropped_image
         else:
             image_to_return = self.image
-        
+
         if image_to_return:
             self.callback(image_to_return)
             self.root.destroy()
+
 
 # Example usage:
 def save_image(image):
@@ -116,6 +138,7 @@ def save_image(image):
     filepath = "cropped_image.png"
     image.save(filepath)
     print(f"Image saved to {filepath}")
+
 
 if __name__ == "__main__":
     root = tk.Tk()

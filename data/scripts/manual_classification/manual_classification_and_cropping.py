@@ -97,6 +97,15 @@ def classify_images(original_dir, new_dir, progress_file):
                         break
                 print("Invalid choice, please try again.")
 
+            while True:
+                image_doubts_input = input("Is this image ok? or no (y/n)").strip().lower()
+                if image_doubts_input in ('1', 'y'):
+                    image_doubts = True
+                    break
+                else:
+                    image_doubts = False
+                    print("Invalid choice. Please enter '1', '2', 'y', or 'n'.")
+
             # Prepare the destination directory
             dest_dir = os.path.join(new_dir, "NON-CROPPED", method_dir, image_class)
             os.makedirs(dest_dir, exist_ok=True)
@@ -139,7 +148,8 @@ def classify_images(original_dir, new_dir, progress_file):
                 # Update the file map
                 file_map[os.path.relpath(filepath, original_dir)] = {
                     "non-cropped": os.path.relpath(filepath, new_dir),
-                    "cropped": os.path.relpath(cropped_new_file_path, new_dir)
+                    "cropped": os.path.relpath(cropped_new_file_path, new_dir),
+                    "weird": not image_doubts
                 }
                 
                 crop_index += 1
