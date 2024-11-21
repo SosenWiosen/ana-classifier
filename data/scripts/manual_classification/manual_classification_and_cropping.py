@@ -34,6 +34,27 @@ def load_progress(progress_file):
         with open(progress_file, 'r') as file:
             return json.load(file)
     return {}
+def load_index_counter(file_map):
+    index_counter = {}
+    for file_info in file_map.values():
+        if isinstance(file_info, dict):
+            # Extract "non-cropped" path and determine class and method
+            non_cropped_path = file_info.get("non-cropped", "")
+            if non_cropped_path:
+                # Split the path to extract method dir and class
+                path_parts = non_cropped_path.split(os.sep)
+                if len(path_parts) > 3:  # Ensure the path has enough depth
+                    method_dir = path_parts[-3]  # 'STED' or 'NON-STED'
+                    image_class = path_parts[-2]  # Class name
+                    key = f"{image_class}_{method_dir}"
+                    # Extract the last used index from the filename
+                    filename = path_parts[-1]  # e.g., "AC1_STED_10.png"
+                    try:
+                        index = int(filename.split('_')[-1].split('.')[0])  # Extract the numeric portion
+                        index_counter[key] = max(index_counter.get(key, 0), index)
+                    except (IndexError, ValueError):
+                        continue  # Ignore files with improperly formatted filenames
+    return index_counter
 def classify_images(original_dir, new_dir, progress_file):
     # Define available classes
     available_classes = ["AC1", "AC2", "AC3", "AC4", "AC5", "AC6", "AC7", "AC8", "AC9", "AC10", "TISSUE"]
@@ -57,7 +78,7 @@ def classify_images(original_dir, new_dir, progress_file):
                         ):
                             available_classes.append(class_from_progress)
 
-    index_counter = {}
+    index_counter = load_index_counter(file_map)
     allowed_extensions = {".tiff", ".png"}
 
     for subdir, _, files in os.walk(original_dir):
