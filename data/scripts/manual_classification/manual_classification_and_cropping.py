@@ -33,7 +33,6 @@ def load_progress(progress_file):
         with open(progress_file, 'r') as file:
             return json.load(file)
     return {}
-
 def classify_images(original_dir, new_dir, progress_file):
     # Define available classes
     available_classes = ["AC1", "AC2", "AC3", "AC4", "AC5", "AC6", "AC7", "AC8", "AC9", "AC10", "TISSUE"]
@@ -43,16 +42,19 @@ def classify_images(original_dir, new_dir, progress_file):
 
     # Dynamically add existing classes from the progress file
     for file_data in file_map.values():
-        if isinstance(file_data, dict):  # Ensure it has the new structure with classes
-            # Get the "cropped" path and split it up
-            cropped_path = file_data.get("cropped", "")
-            # Extract the third-to-last component of the path (the class name)
-            path_parts = cropped_path.split(os.sep)
-            if len(path_parts) > 2:  # Ensure the path is deep enough to extract the class name
-                class_from_progress = path_parts[-3]
-                # Only add the class if it is not a method directory like "STED" or "NON-STED"
-                if class_from_progress not in ["STED", "NON-STED"] and class_from_progress not in available_classes:
-                    available_classes.append(class_from_progress)
+        if isinstance(file_data, dict):  # Ensure it has the structured dictionary
+            cropped_paths = file_data.get("cropped", [])
+            if isinstance(cropped_paths, list):  # Verify it's a list
+                # Loop through all cropped paths to extract class directories
+                for path in cropped_paths:
+                    path_parts = path.split(os.sep)  # Safely split each path
+                    if len(path_parts) > 2:  # Ensure path is deep enough to extract the class
+                        class_from_progress = path_parts[-3]  # Extract the class
+                        if (
+                            class_from_progress not in ["STED", "NON-STED"] and
+                            class_from_progress not in available_classes
+                        ):
+                            available_classes.append(class_from_progress)
 
     index_counter = {}
     allowed_extensions = {".tiff", ".png"}
@@ -154,14 +156,13 @@ def classify_images(original_dir, new_dir, progress_file):
                 # Save the cropped image
                 cropped_image.save(cropped_new_file_path)
 
-                # Get the relative path of the file in the original directory
                 file_relative_path = os.path.relpath(filepath, original_dir)
 
-                # Check if the file already exists in the file_map and initialize fields if necessary
-                if file_relative_path not in file_map:
+                # Initialize `file_map[file_relative_path]` as a dictionary if it doesn't exist
+                if file_relative_path not in file_map or not isinstance(file_map[file_relative_path], dict):
                     file_map[file_relative_path] = {
                         "non-cropped": os.path.relpath(filepath, new_dir),
-                        "cropped": [],  # Store a list of cropped files
+                        "cropped": [],  # Start with an empty list for cropped images
                         "weird": not image_doubts
                     }
 
