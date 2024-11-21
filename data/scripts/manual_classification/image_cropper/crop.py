@@ -105,17 +105,42 @@ class ImageCropper:
         self.canvas.coords(self.rect, self.start_x, self.start_y, cur_x, cur_y)
 
     def on_button_release(self, event):
-        self.crop_coords = self.canvas.coords(self.rect)
+        """Handle mouse button release and adjust cropping coordinates."""
+        if not self.image:
+            return
+
+        # Ensure the crop rectangle doesn't exceed the displayed image bounds
+        canvas_width = self.tk_image.width()
+        canvas_height = self.tk_image.height()
+
+        # Clamp the crop coordinates to the displayed bounds
+        x1, y1, x2, y2 = self.canvas.coords(self.rect)
+        x1 = max(0, min(canvas_width, x1))
+        y1 = max(0, min(canvas_height, y1))
+        x2 = max(0, min(canvas_width, x2))
+        y2 = max(0, min(canvas_height, y2))
+        self.crop_coords = (x1, y1, x2, y2)
+
         if self.crop_coords:
             self.finalize_button.config(state=tk.NORMAL)
 
     def crop_image(self):
-        if self.crop_coords:
+        """Perform cropping while ensuring the crop coordinates are valid."""
+        if self.crop_coords and self.image:
+            # Get the crop coordinates (clamped to the displayed image)
             x1, y1, x2, y2 = [int(coord) for coord in self.crop_coords]
             scale_x = self.image.width / self.displayed_image.width
             scale_y = self.image.height / self.displayed_image.height
-            x1, x2 = int(x1 * scale_x), int(x2 * scale_x)
-            y1, y2 = int(y1 * scale_y), int(y2 * scale_y)
+
+            # Scale crop coordinates to the original image dimensions
+            x1, x2 = max(0, int(x1 * scale_x)), max(0, int(x2 * scale_x))
+            y1, y2 = max(0, int(y1 * scale_y)), max(0, int(y2 * scale_y))
+
+            # Ensure the final crop coordinates are within the original image's dimensions
+            x1, x2 = min(self.image.width, x1), min(self.image.width, x2)
+            y1, y2 = min(self.image.height, y1), min(self.image.height, y2)
+
+            # Perform the crop
             self.cropped_image = self.image.crop((x1, y1, x2, y2))
             self.display_image(self.cropped_image)
 
