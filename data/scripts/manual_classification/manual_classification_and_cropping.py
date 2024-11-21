@@ -191,7 +191,8 @@ def classify_images(original_dir, new_dir, progress_file):
                 # Append the new cropped file path to the "cropped" list
                 file_map[relative_path]["cropped"].append(os.path.relpath(cropped_new_file_path, new_dir))
                 crop_index += 1
-                should_crop = input("Do you want to crop more objects from this image (y/n)? ").strip().lower() == 'y'
+                should_crop_input = input("Do you want to crop more objects from this image (y/n)? ").strip().lower()
+                should_crop = should_crop_input in ('1', 'y')
 
             # Save progress after processing each file
             save_progress(file_map, progress_file)

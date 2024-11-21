@@ -1,5 +1,6 @@
 import os
 import json
+import subprocess
 import tkinter as tk
 from PIL import Image, ImageEnhance, ImageTk
 import tkinter.messagebox as messagebox
@@ -40,12 +41,28 @@ class ImageCropper:
         self.canvas.bind("<ButtonPress-1>", self.on_button_press)
         self.canvas.bind("<B1-Motion>", self.on_mouse_drag)
         self.canvas.bind("<ButtonRelease-1>", self.on_button_release)
+        self.root.bind("<Return>", lambda event: self.finalize_crop())
+        self.root.bind("c", lambda event: self.crop_image())
+
 
         self.rect = None
         self.start_x = self.start_y = 0
         self.crop_coords = None
         self.image = self.displayed_image = self.cropped_image = None
         self.enhanced_image = None  # To store the brightness-adjusted image
+    def return_focus_to_iterm(self):
+        """Bring iTerm2 back to the foreground."""
+        script = """
+        tell application "iTerm2"
+            activate
+        end tell
+        """
+        try:
+            # Use subprocess to execute the AppleScript
+            subprocess.run(["osascript", "-e", script], check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"Error focusing iTerm2: {e}")
+
     def center_window_on_primary_display(self, width=800, height=600):
         # Get the screen dimensions of the primary display
         screen_width = self.root.winfo_screenwidth()
@@ -162,6 +179,7 @@ class ImageCropper:
         if image_to_return:
             self.callback(image_to_return)
             self.root.destroy()
+            self.return_focus_to_iterm()
 
 
 # Example usage:
