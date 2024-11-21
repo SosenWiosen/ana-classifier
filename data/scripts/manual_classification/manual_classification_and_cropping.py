@@ -24,33 +24,47 @@ def crop(filepath):
 
     return cropped_image
 
+def save_progress(file_map, progress_file):
+    with open(progress_file, 'w') as file:
+        json.dump(file_map, file, indent=4)
+
 def load_progress(progress_file):
     if os.path.exists(progress_file):
         with open(progress_file, 'r') as file:
             return json.load(file)
     return {}
 
-def save_progress(file_map, progress_file):
-    with open(progress_file, 'w') as file:
-        json.dump(file_map, file, indent=4)
-
 def classify_images(original_dir, new_dir, progress_file):
+    # Define available classes
+    available_classes = ["AC1", "AC2", "AC3", "AC4", "AC5", "AC6", "AC7", "AC8", "AC9", "AC10", "TISSUE"]
+
+    # Load progress
     file_map = load_progress(progress_file)
-    available_classes = ["AC1", "AC2", "AC3", "AC4"]
+
+    # Dynamically add existing classes from the progress file
+    for file_data in file_map.values():
+        if isinstance(file_data, dict):  # Ensure it has the new structure with classes
+            # Get the "cropped" path and split it up
+            cropped_path = file_data.get("cropped", "")
+            # Extract the third-to-last component of the path (the class name)
+            path_parts = cropped_path.split(os.sep)
+            if len(path_parts) > 2:  # Ensure the path is deep enough to extract the class name
+                class_from_progress = path_parts[-3]
+                # Only add the class if it is not a method directory like "STED" or "NON-STED"
+                if class_from_progress not in ["STED", "NON-STED"] and class_from_progress not in available_classes:
+                    available_classes.append(class_from_progress)
+
     index_counter = {}
     allowed_extensions = {".tiff", ".png"}
 
-
     for subdir, _, files in os.walk(original_dir):
-        for file in files:
+        for file in sorted(files):
             filepath = os.path.join(subdir, file)
             relative_path = os.path.relpath(filepath, original_dir)
-
             # Skip files that have already been processed
             if relative_path in file_map:
                 print(f"Skipping already processed file: {relative_path}")
                 continue
-
             # Check for allowable image extensions
             if not os.path.splitext(file)[1].lower() in allowed_extensions:
                 print(f"Skipping non-image file: {relative_path}")
@@ -73,17 +87,15 @@ def classify_images(original_dir, new_dir, progress_file):
                 else:
                     print("Invalid choice. Please enter '1', '2', 'y', or 'n'.")
 
+            # Ask for image class
             while True:
                 class_prompt = "\n".join([f"{i+1}. {cls}" for i, cls in enumerate(available_classes)])
                 other_new_start_index = len(available_classes) + 1
                 print("\nChoose a class: \n" + class_prompt + f"\n{other_new_start_index}. Other")
                 print(f"{other_new_start_index + 1}. New Class")
-
                 class_choice = input("Class (number): ").strip()
-
                 if class_choice.isdigit():
                     class_index = int(class_choice) - 1
-
                     if class_index < len(available_classes):
                         image_class = available_classes[class_index]
                         break
@@ -130,31 +142,32 @@ def classify_images(original_dir, new_dir, progress_file):
             cropped_dir = os.path.join(new_dir, "CROPPED", method_dir, image_class)
             os.makedirs(cropped_dir, exist_ok=True)
             crop_index = 1
-
             while should_crop:
-                # print("Cropping image...")
-                # print( "filepath: ", filepath)
                 # Use the crop function to get a cropped image as a PIL Image object
                 cropped_image = crop(filepath)
-                # print("Cropped image: ", cropped_image.size)
                 if not cropped_image:
                     break
-                
+
                 cropped_new_filename = f"{image_class}_{method}_{index_counter[index_key]}_crop{crop_index}.png"
                 cropped_new_file_path = os.path.join(cropped_dir, cropped_new_filename)
-                
+
                 # Save the cropped image
                 cropped_image.save(cropped_new_file_path)
-                
-                # Update the file map
-                file_map[os.path.relpath(filepath, original_dir)] = {
-                    "non-cropped": os.path.relpath(filepath, new_dir),
-                    "cropped": os.path.relpath(cropped_new_file_path, new_dir),
-                    "weird": not image_doubts
-                }
-                
-                crop_index += 1
 
+                # Get the relative path of the file in the original directory
+                file_relative_path = os.path.relpath(filepath, original_dir)
+
+                # Check if the file already exists in the file_map and initialize fields if necessary
+                if file_relative_path not in file_map:
+                    file_map[file_relative_path] = {
+                        "non-cropped": os.path.relpath(filepath, new_dir),
+                        "cropped": [],  # Store a list of cropped files
+                        "weird": not image_doubts
+                    }
+
+                # Append the new cropped file path to the "cropped" list
+                file_map[file_relative_path]["cropped"].append(os.path.relpath(cropped_new_file_path, new_dir))
+                crop_index += 1
                 should_crop = input("Do you want to crop more objects from this image (y/n)? ").strip().lower() == 'y'
 
             # Save progress after processing each file
