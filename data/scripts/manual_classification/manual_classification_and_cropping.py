@@ -158,6 +158,9 @@ def classify_images(original_dir, new_dir, progress_file):
             new_file_path = os.path.join(dest_dir, new_filename)
             shutil.copy(filepath, new_file_path)
 
+            file_relative_path = os.path.relpath(filepath, original_dir)
+
+
 
             # Initialize or update the file_map entry
             if file_relative_path not in file_map or not isinstance(file_map[file_relative_path], dict):
@@ -185,7 +188,6 @@ def classify_images(original_dir, new_dir, progress_file):
                 # Save the cropped image
                 cropped_image.save(cropped_new_file_path)
 
-                file_relative_path = os.path.relpath(filepath, original_dir)
 
                 # Append the new cropped file path to the "cropped" list
                 file_map[file_relative_path]["cropped"].append(os.path.relpath(cropped_new_file_path, new_dir))
