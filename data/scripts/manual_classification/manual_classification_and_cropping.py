@@ -62,20 +62,28 @@ def classify_images(original_dir, new_dir, progress_file):
     # Load progress
     file_map = load_progress(progress_file)
 
-    # Dynamically add existing classes from the progress file
+# Dynamically add existing classes from the progress file
     for file_data in file_map.values():
-        if isinstance(file_data, dict):  # Ensure it has the structured dictionary
+        if isinstance(file_data, dict):  # Ensure valid structure
+            # Handle "non-cropped" paths
+            non_cropped_path = file_data.get("non-cropped")
+            if non_cropped_path:
+                path_parts = os.path.normpath(non_cropped_path).split(os.sep)
+                if len(path_parts) > 2:
+                    class_from_progress = path_parts[-2]
+                    if class_from_progress not in available_classes:
+                        print(f"Adding class from non-cropped: {class_from_progress}")  # Debug print
+                        available_classes.append(class_from_progress)
+
+            # Handle "cropped" paths
             cropped_paths = file_data.get("cropped", [])
-            if isinstance(cropped_paths, list):  # Verify it's a list
-                # Loop through all cropped paths to extract class directories
+            if isinstance(cropped_paths, list):  # Ensure valid structure
                 for path in cropped_paths:
-                    path_parts = path.split(os.sep)  # Safely split each path
-                    if len(path_parts) > 2:  # Ensure path is deep enough to extract the class
-                        class_from_progress = path_parts[-3]  # Extract the class
-                        if (
-                            class_from_progress not in ["STED", "NON-STED"] and
-                            class_from_progress not in available_classes
-                        ):
+                    path_parts = os.path.normpath(path).split(os.sep)
+                    if len(path_parts) > 2:
+                        class_from_progress = path_parts[-2]
+                        if class_from_progress not in available_classes:
+                            print(f"Adding class from cropped: {class_from_progress}")  # Debug print
                             available_classes.append(class_from_progress)
 
     index_counter = load_index_counter(file_map)
