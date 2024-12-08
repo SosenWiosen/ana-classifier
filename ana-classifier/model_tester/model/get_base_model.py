@@ -1,7 +1,5 @@
 from tensorflow.keras.callbacks import EarlyStopping
 import tensorflow as tf
-from tensorflow.python.keras import layers
-
 
 def get_base_model(model_name,input_shape, input_tensor):
     base_model = None

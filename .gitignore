@@ -22,6 +22,6 @@ __pycache__/
 
 # Ignore Model files
 *.h5
-
+experiments/
 # Ignore specific script names or extensions if needed
 # data/scripts/*.pyc  # Uncomment if you want to exclude .pyc files

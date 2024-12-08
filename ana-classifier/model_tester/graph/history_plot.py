@@ -15,7 +15,10 @@ def save_plots_separately(history, save_path):
         plt.xlabel('Epoch')
         plt.legend(['Train', 'Val'], loc='upper left')
         plt.savefig(f'{save_path}/{metric}_plot.eps', format='eps', bbox_inches='tight')
-        plt.close()  # Close the figure to free memory
+        plt.savefig(f'{save_path}/{metric}_plot.svg', format='svg', bbox_inches='tight')
+        plt.savefig(f'{save_path}/{metric}_plot.png', format='png', bbox_inches='tight')
+
+    plt.close()  # Close the figure to free memory
 
 def save_combined_plot(history, save_path):
     fig, axs = plt.subplots(3, 1, figsize=(10, 20))
@@ -34,4 +37,6 @@ def save_combined_plot(history, save_path):
 
     plt.tight_layout()  # Adjust layout to prevent overlap
     plt.savefig(f'{save_path}/combined_plots.eps', format='eps', bbox_inches='tight')
+    plt.savefig(f'{save_path}/combined_plots.svg', format='svg', bbox_inches='tight')
+    plt.savefig(f'{save_path}/combined_plots.png', format='png', bbox_inches='tight')
     plt.close()  # Close the figure to free memory

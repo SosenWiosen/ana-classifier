@@ -1,4 +1,4 @@
-from tensorflow.python.keras import layers
+from tensorflow.keras import layers
 
 
 def get_top(base_model_output, num_classes ,top, dropout_rate):

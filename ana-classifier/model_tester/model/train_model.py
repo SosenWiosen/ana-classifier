@@ -14,10 +14,14 @@ from model_tester.model.get_preprocess_input import get_preprocess_input
 from model_tester.model.get_top import get_top
 
 
-def train_model(dst_path, model_name, num_classes, data_augmentation, head="avgpool", top_dropout_rate=0.2,
+def train_model(dst_path, model_name, data_augmentation, head="avgpool", top_dropout_rate=0.2,
                 optimizer="adam", early_stopping=None, metrics=None, finetune=False, finetune_layers=20,
                 finetune_optimizer="adam",
                 finetune_early_stopping=None, model_save_path=None):
+    if finetune_early_stopping is None:
+        finetune_early_stopping = []
+    if early_stopping is None:
+        early_stopping = []
     shape = get_input_shape(model_name)
     img_height, img_width = shape[:2]  # Extract the first two elements
     batch_size = 32
@@ -68,12 +72,13 @@ def train_model(dst_path, model_name, num_classes, data_augmentation, head="avgp
     x = preprocess_input(x)
 
     base_model = get_base_model(model_name, shape, x)
+    base_model.trainable = False
     outputs = get_top(base_model.output, num_classes, head, top_dropout_rate)
     model = tf.keras.Model(inputs, outputs, name=model_name)
     model.compile(optimizer=optimizer, loss="categorical_crossentropy", metrics=["accuracy"] + metrics)
 
     history = model.fit(train_ds, validation_data=val_ds, epochs=20, class_weight=train_class_weights,
-                        callbacks=[early_stopping])
+                        callbacks=early_stopping)
     predictions = []
     y_true = []
 
@@ -103,7 +108,7 @@ def train_model(dst_path, model_name, num_classes, data_augmentation, head="avgp
     )
 
     finetune_history = model.fit(train_ds, validation_data=val_ds, epochs=10, class_weight=train_class_weights,
-                                 callbacks=[finetune_early_stopping])
+                                 callbacks=finetune_early_stopping)
     if model_save_path:
         model_file_path = os.path.join(model_save_path, "model-finetune.keras")
         model.save(model_file_path)
