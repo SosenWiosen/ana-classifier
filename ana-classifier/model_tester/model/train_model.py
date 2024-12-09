@@ -14,10 +14,10 @@ from model_tester.model.get_preprocess_input import get_preprocess_input
 from model_tester.model.get_top import get_top
 
 
-def train_model(dst_path, model_name, data_augmentation, head="avgpool", top_dropout_rate=0.2,
+def train_model(train_path, test_path, model_name, data_augmentation, head="avgpool", top_dropout_rate=0.2,
                 optimizer="adam", early_stopping=None, metrics=None, finetune=False, finetune_layers=20,
                 finetune_optimizer="adam",
-                finetune_early_stopping=None, model_save_path=None):
+                finetune_early_stopping=None, model_save_path=None, max_epochs=20, finetune_max_epochs=10):
     if finetune_early_stopping is None:
         finetune_early_stopping = []
     if early_stopping is None:
@@ -27,14 +27,22 @@ def train_model(dst_path, model_name, data_augmentation, head="avgpool", top_dro
     batch_size = 32
 
     train_ds, val_ds = tf.keras.utils.image_dataset_from_directory(
-        directory=dst_path,
+        directory=train_path,
         labels='inferred',
         subset="both",
         label_mode='categorical',
         image_size=(img_height, img_width),
         batch_size=batch_size,
-        validation_split=0.2,
+        validation_split=0.15,
         seed=123,
+    )
+
+    test_ds = tf.keras.utils.image_dataset_from_directory(
+        directory=test_path,
+        labels='inferred',
+        label_mode='categorical',
+        image_size=(img_height, img_width),
+        batch_size=batch_size,
     )
     class_names = train_ds.class_names
     num_classes = len(class_names)
@@ -43,13 +51,14 @@ def train_model(dst_path, model_name, data_augmentation, head="avgpool", top_dro
     train_ds = train_ds.prefetch(buffer_size=AUTOTUNE)
     val_ds = val_ds.prefetch(buffer_size=AUTOTUNE)
 
-    def copy_red_to_green_and_blue(image,label):
+    def copy_red_to_green_and_blue(image, label):
         red_channel = image[..., 0:1]  # Extract only the red channel, shape (H, W, 1)
         new_image = tf.concat([red_channel, red_channel, red_channel], axis=-1)
         return new_image, label
 
     train_ds = train_ds.map(copy_red_to_green_and_blue)
     val_ds = val_ds.map(copy_red_to_green_and_blue)
+    test_ds = test_ds.map(copy_red_to_green_and_blue)
 
     if metrics is None:
         metrics = [f1]
@@ -77,7 +86,7 @@ def train_model(dst_path, model_name, data_augmentation, head="avgpool", top_dro
     model = tf.keras.Model(inputs, outputs, name=model_name)
     model.compile(optimizer=optimizer, loss="categorical_crossentropy", metrics=["accuracy"] + metrics)
 
-    history = model.fit(train_ds, validation_data=val_ds, epochs=20, class_weight=train_class_weights,
+    history = model.fit(train_ds, validation_data=val_ds, epochs=max_epochs, class_weight=train_class_weights,
                         callbacks=early_stopping)
     predictions = []
     y_true = []
@@ -93,8 +102,18 @@ def train_model(dst_path, model_name, data_augmentation, head="avgpool", top_dro
         model_file_path = os.path.join(model_save_path, "model.keras")
         model.save(model_file_path)
 
+    test_predictions = []
+    test_y_true = []
+    for images, labels in test_ds:
+        preds = model.predict(images)
+        test_predictions.extend(np.argmax(preds, axis=1))
+        test_y_true.extend(np.argmax(labels.numpy(), axis=1))
+    test_y_pred = np.array(test_predictions)
+    test_y_true = np.array(test_y_true)
+
+
     if not finetune:
-        return model, class_names, history, (y_true, y_pred,), None, None
+        return model, class_names, history, (y_true, y_pred),(test_y_true, test_y_pred), None, None, None
 
     should_train = get_should_train_layer(model_name)
     for layer in base_model.layers[-finetune_layers:]:
@@ -107,7 +126,8 @@ def train_model(dst_path, model_name, data_augmentation, head="avgpool", top_dro
         metrics=['accuracy'] + metrics
     )
 
-    finetune_history = model.fit(train_ds, validation_data=val_ds, epochs=10, class_weight=train_class_weights,
+    finetune_history = model.fit(train_ds, validation_data=val_ds, epochs=finetune_max_epochs,
+                                 class_weight=train_class_weights,
                                  callbacks=finetune_early_stopping)
     if model_save_path:
         model_file_path = os.path.join(model_save_path, "model-finetune.keras")
@@ -127,4 +147,12 @@ def train_model(dst_path, model_name, data_augmentation, head="avgpool", top_dro
     finetune_y_pred = np.array(finetune_predictions)
     finetune_y_true = np.array(finetune_y_true)
 
-    return model, class_names, history, (y_true, y_pred), finetune_history, (finetune_y_true, finetune_y_pred),
+    test_finetune_predictions = []
+    test_finetune_y_true = []
+    for images, labels in test_ds:
+        preds = model.predict(images)
+        test_finetune_predictions.extend(np.argmax(preds, axis=1))
+        test_finetune_y_true.extend(np.argmax(labels.numpy(), axis=1))
+    test_finetune_y_pred = np.array(test_finetune_predictions)
+    test_finetune_y_true = np.array(test_finetune_y_true)
+    return model, class_names, history, (y_true, y_pred), (test_y_true, test_y_pred) , finetune_history, (finetune_y_true, finetune_y_pred), (test_finetune_y_true, test_finetune_y_pred)

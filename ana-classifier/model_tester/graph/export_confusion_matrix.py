@@ -5,7 +5,7 @@ from sklearn.metrics import confusion_matrix
 import seaborn as sn
 
 
-def export_confusion_matrix(y_true, y_pred, class_names, savePath):
+def export_confusion_matrix(y_true, y_pred, class_names, savePath, filename='cfm'):
     cf_matrix = confusion_matrix(y_true, y_pred)
 
     # Step 3: Normalize the Confusion Matrix
@@ -23,8 +23,8 @@ def export_confusion_matrix(y_true, y_pred, class_names, savePath):
     plt.show()
 
     # Optional: Saving the figure to EPS
-    plt.savefig(f'{savePath}/cfm.eps', format='eps', bbox_inches='tight')
-    plt.savefig(f'{savePath}/cfm.png', format='png', bbox_inches='tight')
-    plt.savefig(f'{savePath}/cfm.svg', format='svg', bbox_inches='tight')
+    plt.savefig(f'{savePath}/{filename}.eps', format='eps', bbox_inches='tight')
+    plt.savefig(f'{savePath}/{filename}.png', format='png', bbox_inches='tight')
+    plt.savefig(f'{savePath}/{filename}.svg', format='svg', bbox_inches='tight')
 
 
