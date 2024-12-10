@@ -77,7 +77,7 @@ def train_model(train_path, test_path, model_name, data_augmentation, head="avgp
     inputs = tf.keras.layers.Input(shape=shape)
     x = data_augmentation(inputs)
 
-    preprocess_input = get_preprocess_input(model_name)
+    preprocess_input = tf.keras.layers.Lambda(lambda x: get_preprocess_input(model_name)(x))
     x = preprocess_input(x)
 
     base_model = get_base_model(model_name, shape, x)

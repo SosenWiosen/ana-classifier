@@ -127,5 +127,18 @@ def get_base_model(model_name,input_shape, input_tensor):
         base_model = tf.keras.applications.NASNetMobile(
             include_top=False, weights="imagenet", input_tensor=input_tensor, input_shape=input_shape, pooling=None
         )
+    elif model_name == "xception":
+        base_model = tf.keras.applications.Xception(
+            include_top=False, weights="imagenet", input_tensor=input_tensor, input_shape=input_shape, pooling=None
+        )
+    elif model_name == "vgg16":
+        base_model = tf.keras.applications.VGG16(
+            include_top=False, weights="imagenet", input_tensor=input_tensor, input_shape=input_shape, pooling=None
+        )
+    elif model_name == "vgg19":
+        base_model = tf.keras.applications.VGG19(
+            include_top=False, weights="imagenet", input_tensor=input_tensor, input_shape=input_shape, pooling=None
+        )
+
 
     return base_model

@@ -36,38 +36,38 @@ early_stopping = EarlyStopping(
 dst_path = "/Users/sosen/UniProjects/eng-thesis/data/datasets-split/AC8-combined/NON-STED"
 save_path = "/Users/sosen/UniProjects/eng-thesis/experiments/basic-adam-non-sted"
 
-test_model(save_path, dst_path, "efficientnetv2b0", data_augmentation, optimizer="adam", early_stopping=early_stopping,
-           attempt_name="efficientnetv2b0")
-test_model(save_path, dst_path, "efficientnetv2b1", data_augmentation, optimizer="adam", early_stopping=early_stopping,
-           attempt_name="efficientnetv2b1")
-test_model(save_path, dst_path, "efficientnetv2b2", data_augmentation, optimizer="adam", early_stopping=early_stopping,
-           attempt_name="efficientnetv2b2")
-test_model(save_path, dst_path, "efficientnetv2b3", data_augmentation, optimizer="adam", early_stopping=early_stopping,
-           attempt_name="efficientnetv2b3")
-test_model(save_path, dst_path, "efficientnetv2s", data_augmentation, optimizer="adam", early_stopping=early_stopping,
-           attempt_name="efficientnetv2s")
-test_model(save_path, dst_path, "efficientnetv2m", data_augmentation, optimizer="adam", early_stopping=early_stopping,
-           attempt_name="efficientnetv2m")
-test_model(save_path, dst_path, "efficientnetv2l", data_augmentation, optimizer="adam", early_stopping=early_stopping,
-           attempt_name="efficientnetv2l")
-test_model(save_path, dst_path, "resnet50v2", data_augmentation, optimizer="adam", early_stopping=early_stopping,
-           attempt_name="resnet50v2")
-test_model(save_path, dst_path, "resnet101v2", data_augmentation, optimizer="adam", early_stopping=early_stopping,
-           attempt_name="resnet101v2")
-test_model(save_path, dst_path, "resnet152v2", data_augmentation, optimizer="adam", early_stopping=early_stopping,
-           attempt_name="resnet152v2")
-test_model(save_path, dst_path, "densenet121", data_augmentation, optimizer="adam", early_stopping=early_stopping,
-           attempt_name="densenet121")
-test_model(save_path, dst_path, "densenet169", data_augmentation, optimizer="adam", early_stopping=early_stopping,
-           attempt_name="densenet169")
-test_model(save_path, dst_path, "densenet201", data_augmentation, optimizer="adam", early_stopping=early_stopping,
-           attempt_name="densenet201")
-test_model(save_path, dst_path, "mobilenetv2", data_augmentation, optimizer="adam", early_stopping=early_stopping,
-           attempt_name="mobilenetv2")
-test_model(save_path, dst_path, "mobilenetv3small", data_augmentation, optimizer="adam", early_stopping=early_stopping,
-           attempt_name="mobilenetv3small")
-test_model(save_path, dst_path, "mobilenetv3large", data_augmentation, optimizer="adam", early_stopping=early_stopping,
-           attempt_name="mobilenetv3large")
+# test_model(save_path, dst_path, "efficientnetv2b0", data_augmentation, optimizer="adam", early_stopping=early_stopping,
+#            attempt_name="efficientnetv2b0")
+# test_model(save_path, dst_path, "efficientnetv2b1", data_augmentation, optimizer="adam", early_stopping=early_stopping,
+#            attempt_name="efficientnetv2b1")
+# test_model(save_path, dst_path, "efficientnetv2b2", data_augmentation, optimizer="adam", early_stopping=early_stopping,
+#            attempt_name="efficientnetv2b2")
+# test_model(save_path, dst_path, "efficientnetv2b3", data_augmentation, optimizer="adam", early_stopping=early_stopping,
+#            attempt_name="efficientnetv2b3")
+# test_model(save_path, dst_path, "efficientnetv2s", data_augmentation, optimizer="adam", early_stopping=early_stopping,
+#            attempt_name="efficientnetv2s")
+# test_model(save_path, dst_path, "efficientnetv2m", data_augmentation, optimizer="adam", early_stopping=early_stopping,
+#            attempt_name="efficientnetv2m")
+# test_model(save_path, dst_path, "efficientnetv2l", data_augmentation, optimizer="adam", early_stopping=early_stopping,
+#            attempt_name="efficientnetv2l")
+# test_model(save_path, dst_path, "resnet50v2", data_augmentation, optimizer="adam", early_stopping=early_stopping,
+#            attempt_name="resnet50v2")
+# test_model(save_path, dst_path, "resnet101v2", data_augmentation, optimizer="adam", early_stopping=early_stopping,
+#            attempt_name="resnet101v2")
+# test_model(save_path, dst_path, "resnet152v2", data_augmentation, optimizer="adam", early_stopping=early_stopping,
+#            attempt_name="resnet152v2")
+# test_model(save_path, dst_path, "densenet121", data_augmentation, optimizer="adam", early_stopping=early_stopping,
+#            attempt_name="densenet121")
+# test_model(save_path, dst_path, "densenet169", data_augmentation, optimizer="adam", early_stopping=early_stopping,
+#            attempt_name="densenet169")
+# test_model(save_path, dst_path, "densenet201", data_augmentation, optimizer="adam", early_stopping=early_stopping,
+#            attempt_name="densenet201")
+# test_model(save_path, dst_path, "mobilenetv2", data_augmentation, optimizer="adam", early_stopping=early_stopping,
+#            attempt_name="mobilenetv2")
+# test_model(save_path, dst_path, "mobilenetv3small", data_augmentation, optimizer="adam", early_stopping=early_stopping,
+#            attempt_name="mobilenetv3small")
+# test_model(save_path, dst_path, "mobilenetv3large", data_augmentation, optimizer="adam", early_stopping=early_stopping,
+#            attempt_name="mobilenetv3large")
 test_model(save_path, dst_path, "vgg16", data_augmentation, optimizer="adam", early_stopping=early_stopping,
            attempt_name="vgg16")
 test_model(save_path, dst_path, "vgg19", data_augmentation, optimizer="adam", early_stopping=early_stopping,
