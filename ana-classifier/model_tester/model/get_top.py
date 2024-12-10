@@ -1,9 +1,6 @@
 from tensorflow.keras import layers
 import tensorflow as tf
 
-
-from tensorflow.keras import layers
-
 def get_top(base_model_output, num_classes, top, dropout_rate):
     if callable(top):
         # The callable defines and returns all the necessary layers,
