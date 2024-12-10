@@ -7,7 +7,7 @@ from datetime import datetime
 from model_tester.save_report import save_classification_report
 
 
-def test_model(save_path, dst_path, model_name, data_augmentation, head="avgpool", top_dropout_rate=0.2,
+def test_model(save_path, dst_path, model_name, data_augmentation, top="avgpool", top_dropout_rate=0.2,
                max_epochs=20,
                optimizer="adam", early_stopping=None, metrics=None, finetune=False, finetune_layers=20,
                finetune_optimizer="adam",
@@ -36,7 +36,7 @@ def test_model(save_path, dst_path, model_name, data_augmentation, head="avgpool
     train_path = os.path.join(dst_path, "train")
 
     model, class_names, history, original_tuple, test_original_tuple, finetune_history, finetune_tuple, test_finetune_tuple = train_model(
-        train_path, test_path, model_name, data_augmentation, head, top_dropout_rate, optimizer, early_stopping, metrics,
+        train_path, test_path, model_name, data_augmentation, top, top_dropout_rate, optimizer, early_stopping, metrics,
         finetune,
         finetune_layers, finetune_optimizer, finetune_early_stopping, save_directory, max_epochs=max_epochs,
         finetune_max_epochs=finetune_max_epochs)
