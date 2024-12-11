@@ -11,7 +11,7 @@ def get_top(base_model_output, num_classes, top, dropout_rate):
         outputs = top(num_classes)(base_model_output)
     else:
         # Handle the predefined options with final Dense layer added in these cases
-        if top == "avgpool":
+        if top == "dropout":
             x = layers.GlobalAveragePooling2D(name="avg_pool")(base_model_output)
             x = layers.BatchNormalization()(x)
             x = layers.Dropout(dropout_rate, name="top_dropout")(x)
@@ -25,6 +25,38 @@ def get_top(base_model_output, num_classes, top, dropout_rate):
             x = layers.Flatten()(base_model_output)
             x = layers.Dense(1000, activation='relu')(x)
             outputs = layers.Dense(num_classes, activation="softmax", name="pred")(x)
+        elif top == "dense1024_avg":
+            x = layers.GlobalAveragePooling2D(name="avg_pool")(base_model_output)
+            x = layers.BatchNormalization()(x)
+            x = layers.Dense(1024, activation='relu')(x)
+            outputs = layers.Dense(num_classes, activation="softmax", name="pred")(x)
+        elif top == "dense1024_512_avg":
+            x = layers.GlobalAveragePooling2D(name="avg_pool")(base_model_output)
+            x = layers.BatchNormalization()(x)
+            x = layers.Dense(1024, activation='relu')(x)
+            x = layers.Dense(512, activation='relu')(x)
+            outputs = layers.Dense(num_classes, activation="softmax", name="pred")(x)
+        elif top == "dense1024_avg_no_batch_norm":
+            x = layers.GlobalAveragePooling2D(name="avg_pool")(base_model_output)
+            x = layers.Dense(1024, activation='relu')(x)
+            outputs = layers.Dense(num_classes, activation="softmax", name="pred")(x)
+        elif top == "dense1024_max":
+            x = layers.GlobalMaxPooling2D(name="avg_pool")(base_model_output)
+            x = layers.BatchNormalization()(x)
+            x = layers.Dense(1024, activation='relu')(x)
+            outputs = layers.Dense(num_classes, activation="softmax", name="pred")(x)
+        elif top == "dense512_avg":
+            x = layers.GlobalAveragePooling2D(name="avg_pool")(base_model_output)
+            x = layers.BatchNormalization()(x)
+            x = layers.Dense(512, activation='relu')(x)
+            outputs = layers.Dense(num_classes, activation="softmax", name="pred")(x)
+        elif top == "dense2048_avg":
+            x = layers.GlobalAveragePooling2D(name="avg_pool")(base_model_output)
+            x = layers.BatchNormalization()(x)
+            x = layers.Dense(2048, activation='relu')(x)
+            outputs = layers.Dense(num_classes, activation="softmax", name="pred")(x)
+        else:
+            raise ValueError(f"Unknown top layer type '{top}'")
 
     # 'outputs' will be in scope here as all branches define it before this line.
     return outputs
