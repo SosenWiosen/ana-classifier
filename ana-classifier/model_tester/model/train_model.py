@@ -14,7 +14,7 @@ from model_tester.model.get_preprocess_input import get_preprocess_input
 from model_tester.model.get_top import get_top
 
 
-def train_model(train_path, test_path, model_name, data_augmentation, head="avgpool", top_dropout_rate=0.2,
+def train_model(train_path, test_path, model_name, data_augmentation, head="dense1024_avg", top_dropout_rate=0.2,
                 optimizer="adam", early_stopping=None, metrics=None, finetune=False, finetune_layers=20,
                 finetune_optimizer="adam",
                 finetune_early_stopping=None, model_save_path=None, max_epochs=20, finetune_max_epochs=10):
