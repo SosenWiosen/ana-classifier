@@ -8,7 +8,7 @@ from model_tester.save_report import save_classification_report
 from model_tester.save_training_times import save_training_times
 
 
-def test_model(save_path, dst_path, model_name, data_augmentation, top="avgpool", top_dropout_rate=0.2,
+def test_model(save_path="", dst_path="", model_name="", data_augmentation="", top="avgpool", top_dropout_rate=0.2,
                max_epochs=20,
                optimizer="adam", early_stopping=None, metrics=None, finetune=False, finetune_layers=20,
                finetune_optimizer="adam",

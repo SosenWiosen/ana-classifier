@@ -13,19 +13,7 @@ data_augmentation = tf.keras.Sequential([
 
 # optimizer = Adam(learning_rate=1e-4)
 # optimizer = AdamW()
-early_stopping = EarlyStopping(
-    monitor='val_f1',  # specify the F1 score for early stopping
-    patience=15,
-    mode='max',  #
-    restore_best_weights=True
-)
 
-finetune_early_stopping = EarlyStopping(
-    monitor='val_f1',  # specify the F1 score for early stopping
-    patience=15,
-    mode='max',  #
-    restore_best_weights=True
-)
 
 # Define a list of model configurations
 model_configs = [
@@ -58,40 +46,77 @@ model_configs = [
 common_params = {
     "save_path": "/Users/sosen/UniProjects/eng-thesis/experiments/basic-adam-non-sted",
     "dst_path": "/Users/sosen/UniProjects/eng-thesis/data/datasets-split/AC8-combined/NON-STED",
-    "data_augmentation": data_augmentation,  # Assuming this is defined elsewhere
+    "data_augmentation": data_augmentation,  # Ensure data_augmentation is initialized correctly
     "top": "dense1024_dropout_avg",
-    "optimizer": Adam(learning_rate=1e-4),
     "max_epochs": 80,
-    "early_stopping": early_stopping,  # Assuming this is defined elsewhere
     "finetune": True,
-    "finetune_optimizer": Adam(learning_rate=1e-5),
-    "finetune_early_stopping": finetune_early_stopping,  # Assuming this is defined elsewhere
     "finetune_max_epochs": 100,
-    "finetune_layers": 30
+    "finetune_layers": 30,
 }
 
 for model_name, attempt_name in model_configs:
-    test_model(model=model_name,
-               attempt_name=attempt_name,
-               **common_params)  # Unpacking common parameters
+    # Ensure a new optimizer is created each time
+    local_optimizer = Adam(learning_rate=1e-4)
+    local_finetune_optimizer = Adam(learning_rate=1e-5)
 
+    early_stopping = EarlyStopping(
+        monitor='val_f1',  # specify the F1 score for early stopping
+        patience=15,
+        mode='max',  #
+        restore_best_weights=True
+    )
+
+    finetune_early_stopping = EarlyStopping(
+        monitor='val_f1',  # specify the F1 score for early stopping
+        patience=15,
+        mode='max',  #
+        restore_best_weights=True
+    )
+
+    # Include the newly created optimizers in the call
+    test_model(model_name=model_name,
+               attempt_name=attempt_name,
+               optimizer=local_optimizer,
+               finetune_optimizer=local_finetune_optimizer,
+               early_stopping=early_stopping,
+               finetune_early_stopping=finetune_early_stopping,
+               **common_params)
 
 common_params = {
     "save_path": "/Users/sosen/UniProjects/eng-thesis/experiments/basic-adam-sted",
     "dst_path": "/Users/sosen/UniProjects/eng-thesis/data/datasets-split/AC8-combined/STED",
     "data_augmentation": data_augmentation,  # Assuming this is defined elsewhere
     "top": "dense1024_dropout_avg",
-    "optimizer": Adam(learning_rate=1e-4),
     "max_epochs": 80,
-    "early_stopping": early_stopping,  # Assuming this is defined elsewhere
     "finetune": True,
-    "finetune_optimizer": Adam(learning_rate=1e-5),
-    "finetune_early_stopping": finetune_early_stopping,  # Assuming this is defined elsewhere
     "finetune_max_epochs": 100,
     "finetune_layers": 30
 }
 
 for model_name, attempt_name in model_configs:
-    test_model(model=model_name,
+    # Ensure a new optimizer is created each time
+    local_optimizer = Adam(learning_rate=1e-4)
+    local_finetune_optimizer = Adam(learning_rate=1e-5)
+
+    early_stopping = EarlyStopping(
+        monitor='val_f1',  # specify the F1 score for early stopping
+        patience=15,
+        mode='max',  #
+        restore_best_weights=True
+    )
+
+    finetune_early_stopping = EarlyStopping(
+        monitor='val_f1',  # specify the F1 score for early stopping
+        patience=15,
+        mode='max',  #
+        restore_best_weights=True
+    )
+
+    # Include the newly created optimizers in the call
+    test_model(model_name=model_name,
                attempt_name=attempt_name,
-               **common_params)  # Unpacking common parameters
+               optimizer=local_optimizer,
+               finetune_optimizer=local_finetune_optimizer,
+               early_stopping=early_stopping,
+               finetune_early_stopping=finetune_early_stopping,
+               **common_params)
