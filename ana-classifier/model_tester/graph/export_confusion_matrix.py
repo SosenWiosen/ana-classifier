@@ -20,7 +20,7 @@ def export_confusion_matrix(y_true, y_pred, class_names, savePath, filename='cfm
     plt.title('Normalized Confusion Matrix')
     plt.ylabel('True Labels')
     plt.xlabel('Predicted Labels')
-    plt.show()
+    # plt.show()
 
     # Optional: Saving the figure to EPS
     plt.savefig(f'{savePath}/{filename}.eps', format='eps', bbox_inches='tight')

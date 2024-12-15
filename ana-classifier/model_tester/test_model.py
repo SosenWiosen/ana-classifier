@@ -5,6 +5,7 @@ import os
 from datetime import datetime
 
 from model_tester.save_report import save_classification_report
+from model_tester.save_training_times import save_training_times
 
 
 def test_model(save_path, dst_path, model_name, data_augmentation, top="avgpool", top_dropout_rate=0.2,
@@ -35,7 +36,7 @@ def test_model(save_path, dst_path, model_name, data_augmentation, top="avgpool"
     test_path = os.path.join(dst_path, "test")
     train_path = os.path.join(dst_path, "train")
 
-    model, class_names, history, original_tuple, test_original_tuple, finetune_history, finetune_tuple, test_finetune_tuple = train_model(
+    model, class_names, history, train_times, original_tuple, test_original_tuple, finetune_history, finetune_times, finetune_tuple, test_finetune_tuple = train_model(
         train_path, test_path, model_name, data_augmentation, top, top_dropout_rate, optimizer, early_stopping, metrics,
         finetune,
         finetune_layers, finetune_optimizer, finetune_early_stopping, save_directory, max_epochs=max_epochs,
@@ -46,6 +47,7 @@ def test_model(save_path, dst_path, model_name, data_augmentation, top="avgpool"
     save_plots_separately(history, plots_directory)
     save_combined_plot(history, plots_directory)
     save_classification_report(y_true, y_pred, os.path.join(plots_directory, "classification_report.json"), class_names)
+    save_training_times(train_times, os.path.join(plots_directory, "training_times.json"))
     save_classification_report(test_y_true, test_y_pred,
                                os.path.join(test_results_directory, "classification_report.json"), class_names)
     export_confusion_matrix(test_y_true, test_y_pred, class_names, test_results_directory, filename='cfm_test')
@@ -58,7 +60,9 @@ def test_model(save_path, dst_path, model_name, data_augmentation, top="avgpool"
         save_combined_plot(finetune_history, finetune_plots_directory)
         save_classification_report(finetune_y_true, finetune_y_pred,
                                    os.path.join(finetune_plots_directory, "classification_report.json"), class_names)
+        save_training_times(train_times, os.path.join(finetune_plots_directory, "training_times.json"))
         save_classification_report(test_finetune_y_true, test_finetune_y_pred,
                                    os.path.join(test_results_directory, "classification_report_finetune.json"),
                                    class_names)
-        export_confusion_matrix(test_finetune_y_true, test_finetune_y_pred, class_names, test_results_directory,  filename='cfm_test_finetune')
+        export_confusion_matrix(test_finetune_y_true, test_finetune_y_pred, class_names, test_results_directory,
+                                filename='cfm_test_finetune')

@@ -7,6 +7,7 @@ from sklearn.utils import class_weight
 from model_tester.model.get_should_train_layer import get_should_train_layer
 from model_tester.metrics.f1 import f1
 from model_tester.model.get_base_model import get_base_model
+from model_tester.metrics.time_history import TimeHistory
 import tensorflow as tf
 
 from model_tester.model.get_input_shape import get_input_shape
@@ -86,8 +87,10 @@ def train_model(train_path, test_path, model_name, data_augmentation, head="avgp
     model = tf.keras.Model(inputs, outputs, name=model_name)
     model.compile(optimizer=optimizer, loss="categorical_crossentropy", metrics=["accuracy"] + metrics)
 
+    train_time_callback = TimeHistory()
+
     history = model.fit(train_ds, validation_data=val_ds, epochs=max_epochs, class_weight=train_class_weights,
-                        callbacks=early_stopping)
+                        callbacks=[early_stopping, train_time_callback])
     predictions = []
     y_true = []
 
@@ -111,9 +114,9 @@ def train_model(train_path, test_path, model_name, data_augmentation, head="avgp
     test_y_pred = np.array(test_predictions)
     test_y_true = np.array(test_y_true)
 
-
     if not finetune:
-        return model, class_names, history, (y_true, y_pred),(test_y_true, test_y_pred), None, None, None
+        return model, class_names, history, train_time_callback.times, (y_true, y_pred), (
+        test_y_true, test_y_pred), None, None, None, None
 
     should_train = get_should_train_layer(model_name)
     for layer in base_model.layers[-finetune_layers:]:
@@ -126,9 +129,11 @@ def train_model(train_path, test_path, model_name, data_augmentation, head="avgp
         metrics=['accuracy'] + metrics
     )
 
+    finetune_time_callback = TimeHistory()
+
     finetune_history = model.fit(train_ds, validation_data=val_ds, epochs=finetune_max_epochs,
                                  class_weight=train_class_weights,
-                                 callbacks=finetune_early_stopping)
+                                 callbacks=[finetune_early_stopping, finetune_time_callback])
     if model_save_path:
         model_file_path = os.path.join(model_save_path, "model-finetune.keras")
         model.save(model_file_path)
@@ -155,4 +160,6 @@ def train_model(train_path, test_path, model_name, data_augmentation, head="avgp
         test_finetune_y_true.extend(np.argmax(labels.numpy(), axis=1))
     test_finetune_y_pred = np.array(test_finetune_predictions)
     test_finetune_y_true = np.array(test_finetune_y_true)
-    return model, class_names, history, (y_true, y_pred), (test_y_true, test_y_pred) , finetune_history, (finetune_y_true, finetune_y_pred), (test_finetune_y_true, test_finetune_y_pred)
+    return model, class_names, history, train_time_callback.times, (y_true, y_pred), (
+    test_y_true, test_y_pred), finetune_history, finetune_time_callback.times, (finetune_y_true, finetune_y_pred), (
+    test_finetune_y_true, test_finetune_y_pred)
