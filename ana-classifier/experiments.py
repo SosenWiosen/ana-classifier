@@ -1,7 +1,7 @@
 import tensorflow as tf
 from keras.src.optimizers.adamw import AdamW
 from tensorflow.python.keras.callbacks import EarlyStopping
-from tensorflow.keras.optimizers.legacy import Adam
+from tensorflow.keras.optimizers import Adam
 from model_tester.test_model import test_model
 
 data_augmentation = tf.keras.Sequential([
