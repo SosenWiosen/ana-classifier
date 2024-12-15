@@ -48,9 +48,9 @@ common_params = {
     "dst_path": "/Users/sosen/UniProjects/eng-thesis/data/datasets-split/AC8-combined/NON-STED",
     "data_augmentation": data_augmentation,  # Ensure data_augmentation is initialized correctly
     "top": "dense1024_dropout_avg",
-    "max_epochs": 80,
+    "max_epochs": 150,
     "finetune": True,
-    "finetune_max_epochs": 100,
+    "finetune_max_epochs": 150,
     "finetune_layers": 30,
 }
 
