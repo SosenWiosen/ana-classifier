@@ -6,9 +6,9 @@ from model_tester.test_model import test_model
 
 data_augmentation = tf.keras.Sequential([
     tf.keras.layers.RandomContrast(0.05),
-    tf.keras.layers.RandomFlip("horizontal"),
-    tf.keras.layers.RandomFlip("vertical"),
     tf.keras.layers.RandomRotation(0.1),
+    tf.keras.layers.RandomFlip("horizontal"),
+    tf.keras.layers.RandomFlip("vertical")
 ])
 
 # optimizer = Adam(learning_rate=1e-4)
