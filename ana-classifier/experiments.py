@@ -42,15 +42,15 @@ common_params = {
     "save_path": "/Users/sosen/UniProjects/eng-thesis/experiments/basic-adam-non-sted",
     "dst_path": "/Users/sosen/UniProjects/eng-thesis/data/datasets-split/AC8-combined/NON-STED",
     "top": "dense1024_dropout_avg",
-    "max_epochs": 150,
+    "max_epochs": 50,
     "finetune": True,
-    "finetune_max_epochs": 150,
+    "finetune_max_epochs": 100,
     "finetune_layers": 30,
 }
 
 for model_name, attempt_name in model_configs:
     # Ensure a new optimizer is created each time
-    local_optimizer = Adam(learning_rate=1e-4)
+    local_optimizer = Adam()
     local_finetune_optimizer = Adam(learning_rate=1e-5)
 
     data_augmentation = tf.keras.Sequential([
@@ -88,7 +88,7 @@ common_params = {
     "save_path": "/Users/sosen/UniProjects/eng-thesis/experiments/basic-adam-sted",
     "dst_path": "/Users/sosen/UniProjects/eng-thesis/data/datasets-split/AC8-combined/STED",
     "top": "dense1024_dropout_avg",
-    "max_epochs": 80,
+    "max_epochs": 50,
     "finetune": True,
     "finetune_max_epochs": 100,
     "finetune_layers": 30
@@ -96,7 +96,7 @@ common_params = {
 
 for model_name, attempt_name in model_configs:
     # Ensure a new optimizer is created each time
-    local_optimizer = Adam(learning_rate=1e-4)
+    local_optimizer = Adam()
     local_finetune_optimizer = Adam(learning_rate=1e-5)
 
     data_augmentation = tf.keras.Sequential([
