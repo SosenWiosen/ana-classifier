@@ -4,12 +4,7 @@ from tensorflow.python.keras.callbacks import EarlyStopping
 from tensorflow.keras.optimizers import Adam
 from model_tester.test_model import test_model
 
-data_augmentation = tf.keras.Sequential([
-    tf.keras.layers.RandomContrast(0.05),
-    tf.keras.layers.RandomRotation(0.1),
-    tf.keras.layers.RandomFlip("horizontal"),
-    tf.keras.layers.RandomFlip("vertical")
-])
+
 
 # optimizer = Adam(learning_rate=1e-4)
 # optimizer = AdamW()
@@ -46,7 +41,6 @@ model_configs = [
 common_params = {
     "save_path": "/Users/sosen/UniProjects/eng-thesis/experiments/basic-adam-non-sted",
     "dst_path": "/Users/sosen/UniProjects/eng-thesis/data/datasets-split/AC8-combined/NON-STED",
-    "data_augmentation": data_augmentation,  # Ensure data_augmentation is initialized correctly
     "top": "dense1024_dropout_avg",
     "max_epochs": 150,
     "finetune": True,
@@ -58,6 +52,13 @@ for model_name, attempt_name in model_configs:
     # Ensure a new optimizer is created each time
     local_optimizer = Adam(learning_rate=1e-4)
     local_finetune_optimizer = Adam(learning_rate=1e-5)
+
+    data_augmentation = tf.keras.Sequential([
+        tf.keras.layers.RandomContrast(0.05),
+        tf.keras.layers.RandomRotation(0.1),
+        tf.keras.layers.RandomFlip("horizontal"),
+        tf.keras.layers.RandomFlip("vertical")
+    ])
 
     early_stopping = EarlyStopping(
         monitor='val_f1',  # specify the F1 score for early stopping
@@ -77,6 +78,7 @@ for model_name, attempt_name in model_configs:
     test_model(model_name=model_name,
                attempt_name=attempt_name,
                optimizer=local_optimizer,
+               data_augmentation=data_augmentation,
                finetune_optimizer=local_finetune_optimizer,
                early_stopping=early_stopping,
                finetune_early_stopping=finetune_early_stopping,
@@ -98,6 +100,13 @@ for model_name, attempt_name in model_configs:
     local_optimizer = Adam(learning_rate=1e-4)
     local_finetune_optimizer = Adam(learning_rate=1e-5)
 
+    data_augmentation = tf.keras.Sequential([
+        tf.keras.layers.RandomContrast(0.05),
+        tf.keras.layers.RandomRotation(0.1),
+        tf.keras.layers.RandomFlip("horizontal"),
+        tf.keras.layers.RandomFlip("vertical")
+    ])
+
     early_stopping = EarlyStopping(
         monitor='val_f1',  # specify the F1 score for early stopping
         patience=15,
@@ -116,6 +125,7 @@ for model_name, attempt_name in model_configs:
     test_model(model_name=model_name,
                attempt_name=attempt_name,
                optimizer=local_optimizer,
+               data_augmentation=data_augmentation,
                finetune_optimizer=local_finetune_optimizer,
                early_stopping=early_stopping,
                finetune_early_stopping=finetune_early_stopping,
