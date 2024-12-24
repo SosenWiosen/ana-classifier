@@ -88,9 +88,13 @@ def test_model_k_fold(save_path="", dst_path="", model_name="", data_augmentatio
         finetune_max_epochs=finetune_max_epochs,
         model_save_path=save_directory,
     )
+    fold_val_y_trues, fold_val_y_preds = original_tuple  # Here, both are likely lists of lists (for each fold).
+    fold_test_y_trues, fold_test_y_preds = test_original_tuple  # Here, both are likely lists of lists (for each fold).
     for i in range(k):
-        y_true, y_pred = original_tuple[i]
-        test_y_true, test_y_pred = test_original_tuple[i]
+        y_true = fold_val_y_trues[i]  # True labels for the i-th fold
+        y_pred = fold_val_y_preds[i]  # Predicted labels for the i-th fold
+        test_y_true = fold_test_y_trues[i]  # True labels for the i-th fold
+        test_y_pred = fold_test_y_preds[i]  # Predicted labels for the i-th fold
         history = fold_histories[i]
         train_times = fold_train_times[i]
         export_confusion_matrix(y_true, y_pred, class_names, plots_directory, filename=f'cfm_fold_{i}')
@@ -114,8 +118,13 @@ def test_model_k_fold(save_path="", dst_path="", model_name="", data_augmentatio
             }, f, indent=4)
 
         if finetune:
-            finetune_y_true, finetune_y_pred = finetune_tuple[i]
-            test_finetune_y_true, test_finetune_y_pred = test_finetune_tuple[i]
+            fold_finetune_y_true, fold_finetune_y_pred = finetune_tuple
+            fold_test_finetune_y_true, fold_test_finetune_y_pred = test_finetune_tuple
+            finetune_y_true = fold_finetune_y_true[i]
+            finetune_y_pred = fold_finetune_y_pred[i]
+            test_finetune_y_true = fold_test_finetune_y_true[i]
+            test_finetune_y_pred = fold_test_finetune_y_pred[i]
+
             finetune_history = finetune_fold_histories[i]
             finetune_train_times = finetune_fold_train_times[i]
             export_confusion_matrix(finetune_y_true, finetune_y_pred, class_names, finetune_plots_directory,
