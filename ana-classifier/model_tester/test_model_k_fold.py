@@ -13,12 +13,12 @@ from model_tester.save_report import save_classification_report
 from model_tester.save_training_times import save_training_times
 
 
-def test_model_k_fold(save_path="", dst_path="", model_name="", data_augmentation="", top="avgpool",
+def test_model_k_fold(save_path="", dst_path="", model_name="", data_augmentation_factory="", top="avgpool",
                       top_dropout_rate=0.2,
                       max_epochs=20,
-                      optimizer="adam", early_stopping=None, metrics=None, finetune=False, finetune_layers=20,
-                      finetune_optimizer="adam",
-                      finetune_early_stopping=None, finetune_max_epochs=10, attempt_name=""):
+                      optimizer_factory=lambda: "adam", early_stopping_factory=None, metrics=None, finetune=False, finetune_layers=20,
+                      finetune_optimizer_factory=lambda: "adam",
+                      finetune_early_stopping_factory=None, finetune_max_epochs=10, attempt_name=""):
     if attempt_name == "":
         attempt_name = model_name
 
@@ -73,17 +73,17 @@ def test_model_k_fold(save_path="", dst_path="", model_name="", data_augmentatio
     ) = train_model_k_fold(
         dst_path,
         model_name,  # Model name
-        data_augmentation,  # Data augmentation layers
+        data_augmentation_factory,  # Data augmentation layers
         k=5,
         head=top,
         top_dropout_rate=top_dropout_rate,
-        optimizer=optimizer,
-        early_stopping=early_stopping,
+        optimizer_factory=optimizer_factory,
+        early_stopping_factory=early_stopping_factory,
         metrics=metrics,
         finetune=finetune,
         finetune_layers=finetune_layers,
-        finetune_optimizer=finetune_optimizer,
-        finetune_early_stopping=finetune_early_stopping,
+        finetune_optimizer_factory=finetune_optimizer_factory,
+        finetune_early_stopping_factory=finetune_early_stopping_factory,
         max_epochs=max_epochs,
         finetune_max_epochs=finetune_max_epochs,
         model_save_path=save_directory,

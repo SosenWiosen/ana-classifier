@@ -16,15 +16,11 @@ from model_tester.model.get_preprocess_input import get_preprocess_input
 from model_tester.model.get_top import get_top
 
 
-def train_model_k_fold(dst_path, model_name, data_augmentation, k=5, head="avgpool", top_dropout_rate=0.2,
-                       optimizer="adam", early_stopping=None, metrics=None, finetune=False, finetune_layers=20,
-                       finetune_optimizer="adam",
-                       finetune_early_stopping=None, model_save_path=None, max_epochs=20, finetune_max_epochs=10):
+def train_model_k_fold(dst_path, model_name, data_augmentation_factory, k=5, head="avgpool", top_dropout_rate=0.2,
+                       optimizer_factory=lambda: "adam", early_stopping_factory= lambda: [], metrics=None, finetune=False, finetune_layers=20,
+                       finetune_optimizer_factory= lambda: "adam",
+                       finetune_early_stopping_factory=lambda: [], model_save_path=None, max_epochs=20, finetune_max_epochs=10):
     test_split_ratio = 0.2
-    if finetune_early_stopping is None:
-        finetune_early_stopping = []
-    if early_stopping is None:
-        early_stopping = []
     shape = get_input_shape(model_name)
 
     img_height, img_width = shape[:2]  # Extract the first two elements
@@ -123,7 +119,7 @@ def train_model_k_fold(dst_path, model_name, data_augmentation, k=5, head="avgpo
         train_class_weights = dict(enumerate(class_weights))
 
         inputs = tf.keras.layers.Input(shape=shape)
-        x = data_augmentation(inputs)
+        x = data_augmentation_factory()(inputs)
 
         preprocess_input = tf.keras.layers.Lambda(lambda x: get_preprocess_input(model_name)(x))
         x = preprocess_input(x)
@@ -132,13 +128,13 @@ def train_model_k_fold(dst_path, model_name, data_augmentation, k=5, head="avgpo
         base_model.trainable = False
         outputs = get_top(base_model.output, num_classes, head, top_dropout_rate)
         model = tf.keras.Model(inputs, outputs, name=model_name)
-        model.compile(optimizer=optimizer, loss="categorical_crossentropy", metrics=["accuracy"] + metrics)
+        model.compile(optimizer=optimizer_factory(), loss="categorical_crossentropy", metrics=["accuracy"] + metrics)
 
         train_time_callback = TimeHistory()
 
         history = model.fit(train_images, train_labels, validation_data=(val_images, val_labels), epochs=max_epochs,
                             class_weight=train_class_weights,
-                            callbacks=[early_stopping, train_time_callback])
+                            callbacks=[early_stopping_factory(), train_time_callback])
         # Validation Evaluation
         predictions = []
         y_true = []
@@ -196,7 +192,7 @@ def train_model_k_fold(dst_path, model_name, data_augmentation, k=5, head="avgpo
                 layer.trainable = True
 
         model.compile(
-            optimizer=finetune_optimizer,
+            optimizer=finetune_optimizer_factory(),
             loss="categorical_crossentropy",
             metrics=['accuracy'] + metrics
         )
@@ -206,7 +202,7 @@ def train_model_k_fold(dst_path, model_name, data_augmentation, k=5, head="avgpo
         finetune_history = model.fit(train_images, train_labels, validation_data=(val_images, val_labels),
                                      epochs=finetune_max_epochs,
                                      class_weight=train_class_weights,
-                                     callbacks=[finetune_early_stopping, finetune_time_callback])
+                                     callbacks=[finetune_early_stopping_factory(), finetune_time_callback])
         if model_save_path:
             model_file_path = os.path.join(model_save_path, f"model_fold_{fold_no}_finetune.keras")
             model.save(model_file_path)

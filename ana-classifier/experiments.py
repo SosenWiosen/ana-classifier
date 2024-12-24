@@ -39,7 +39,7 @@ model_configs = [
 # Parameters shared across all models
 common_params = {
     "save_path": "/Users/sosen/UniProjects/eng-thesis/experiments/kfold-adam-non-sted/",
-    "dst_path": "/Users/sosen/UniProjects/eng-thesis/data/datasets-unsplit/AC8-combined/CROPPED/NON-STED",
+    "dst_path": "/Users/sosen/UniProjects/eng-thesis/data/datasets-all/datasets-unsplit/AC8-combined/CROPPED/NON-STED",
     "top": "dense1024_dropout_avg",
     "max_epochs": 50,
     "finetune": True,
@@ -49,43 +49,48 @@ common_params = {
 
 for model_name, attempt_name in model_configs:
     # Ensure a new optimizer is created each time
-    local_optimizer = Adam()
-    local_finetune_optimizer = Adam(learning_rate=1e-5)
+    def create_data_augmentation():
+        return tf.keras.Sequential([
+            tf.keras.layers.RandomContrast(0.05),
+            tf.keras.layers.RandomRotation(0.1),
+            tf.keras.layers.RandomFlip("horizontal"),
+            tf.keras.layers.RandomFlip("vertical")
+        ])
 
-    data_augmentation = tf.keras.Sequential([
-        tf.keras.layers.RandomContrast(0.05),
-        tf.keras.layers.RandomRotation(0.1),
-        tf.keras.layers.RandomFlip("horizontal"),
-        tf.keras.layers.RandomFlip("vertical")
-    ])
+    def create_optimizer():
+        return tf.keras.optimizers.Adam()
 
-    early_stopping = EarlyStopping(
-        monitor='val_f1',  # specify the F1 score for early stopping
-        patience=15,
-        mode='max',  #
-        restore_best_weights=True
-    )
+    def create_finetune_optimizer():
+        return tf.keras.optimizers.Adam(learning_rate=1e-5)
 
-    finetune_early_stopping = EarlyStopping(
-        monitor='val_f1',  # specify the F1 score for early stopping
-        patience=15,
-        mode='max',  #
-        restore_best_weights=True
-    )
+    def create_early_stopping():
+        return tf.keras.callbacks.EarlyStopping(
+            monitor='val_f1',
+            patience=15,
+            mode='max',
+            restore_best_weights=True
+        )
+    def create_finetune_early_stopping():
+        return tf.keras.callbacks.EarlyStopping(
+            monitor='val_f1',
+            patience=15,
+            mode='max',
+            restore_best_weights=True
+        )
 
     # Include the newly created optimizers in the call
     test_model_k_fold(model_name=model_name,
                attempt_name=attempt_name,
-               optimizer=local_optimizer,
-               data_augmentation=data_augmentation,
-               finetune_optimizer=local_finetune_optimizer,
-               early_stopping=early_stopping,
-               finetune_early_stopping=finetune_early_stopping,
+               optimizer_factory=create_optimizer,
+               data_augmentation_factory=create_data_augmentation,
+               finetune_optimizer_factory=create_finetune_optimizer,
+               early_stopping_factory=create_early_stopping,
+               finetune_early_stopping_factory=create_finetune_early_stopping,
                **common_params)
 
 common_params = {
     "save_path": "/Users/sosen/UniProjects/eng-thesis/experiments/basic-adam-sted",
-    "dst_path": "/Users/sosen/UniProjects/eng-thesis/data/datasets-split/AC8-combined/STED",
+    "dst_path": "/Users/sosen/UniProjects/eng-thesis/data/datasets-all/datasets-unsplit/AC8-combined/STED",
     "top": "dense1024_dropout_avg",
     "max_epochs": 50,
     "finetune": True,
@@ -121,10 +126,10 @@ for model_name, attempt_name in model_configs:
 
     # Include the newly created optimizers in the call
     test_model_k_fold(model_name=model_name,
-               attempt_name=attempt_name,
-               optimizer=local_optimizer,
-               data_augmentation=data_augmentation,
-               finetune_optimizer=local_finetune_optimizer,
-               early_stopping=early_stopping,
-               finetune_early_stopping=finetune_early_stopping,
+                attempt_name=attempt_name,
+                optimizer_factory=local_optimizer,
+                data_augmentation_factory=data_augmentation,
+                finetune_optimizer_factory=local_finetune_optimizer,
+                early_stopping_factory=early_stopping,
+                finetune_early_stopping_factory=finetune_early_stopping,
                **common_params)
