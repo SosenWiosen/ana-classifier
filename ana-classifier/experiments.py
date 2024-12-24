@@ -3,8 +3,7 @@ from keras.src.optimizers.adamw import AdamW
 from tensorflow.python.keras.callbacks import EarlyStopping
 from tensorflow.keras.optimizers import Adam
 from model_tester.test_model import test_model
-
-
+from model_tester.test_model_k_fold import test_model_k_fold
 
 # optimizer = Adam(learning_rate=1e-4)
 # optimizer = AdamW()
@@ -13,34 +12,34 @@ from model_tester.test_model import test_model
 # Define a list of model configurations
 model_configs = [
     ("efficientnetv2b0", "efficientnetv2b0"),
-    ("efficientnetv2b1", "efficientnetv2b1"),
-    ("efficientnetv2b2", "efficientnetv2b2"),
-    ("efficientnetv2b3", "efficientnetv2b3"),
-    ("efficientnetv2s", "efficientnetv2s"),
-    ("efficientnetv2m", "efficientnetv2m"),
-    ("efficientnetv2l", "efficientnetv2l"),
-    ("resnet50v2", "resnet50v2"),
-    ("resnet101v2", "resnet101v2"),
-    ("resnet152v2", "resnet152v2"),
-    ("densenet121", "densenet121"),
-    ("densenet169", "densenet169"),
-    ("densenet201", "densenet201"),
-    ("mobilenetv2", "mobilenetv2"),
-    ("mobilenetv3small", "mobilenetv3small"),
-    ("mobilenetv3large", "mobilenetv3large"),
-    ("vgg16", "vgg16"),
-    ("vgg19", "vgg19"),
-    ("inceptionv3", "inceptionv3"),
-    ("inceptionresnetv2", "inceptionresnetv2"),
-    ("nasnetlarge", "nasnetlarge"),
-    ("nasnetmobile", "nasnetmobile"),
-    ("xception", "xception")
+    # ("efficientnetv2b1", "efficientnetv2b1"),
+    # ("efficientnetv2b2", "efficientnetv2b2"),
+    # ("efficientnetv2b3", "efficientnetv2b3"),
+    # ("efficientnetv2s", "efficientnetv2s"),
+    # ("efficientnetv2m", "efficientnetv2m"),
+    # ("efficientnetv2l", "efficientnetv2l"),
+    # ("resnet50v2", "resnet50v2"),
+    # ("resnet101v2", "resnet101v2"),
+    # ("resnet152v2", "resnet152v2"),
+    # ("densenet121", "densenet121"),
+    # ("densenet169", "densenet169"),
+    # ("densenet201", "densenet201"),
+    # ("mobilenetv2", "mobilenetv2"),
+    # ("mobilenetv3small", "mobilenetv3small"),
+    # ("mobilenetv3large", "mobilenetv3large"),
+    # ("vgg16", "vgg16"),
+    # ("vgg19", "vgg19"),
+    # ("inceptionv3", "inceptionv3"),
+    # ("inceptionresnetv2", "inceptionresnetv2"),
+    # ("nasnetlarge", "nasnetlarge"),
+    # ("nasnetmobile", "nasnetmobile"),
+    # ("xception", "xception")
 ]
 
 # Parameters shared across all models
 common_params = {
-    "save_path": "/Users/sosen/UniProjects/eng-thesis/experiments/basic-adam-non-sted",
-    "dst_path": "/Users/sosen/UniProjects/eng-thesis/data/datasets-split/AC8-combined/NON-STED",
+    "save_path": "/Users/sosen/UniProjects/eng-thesis/experiments/kfold-adam-non-sted/",
+    "dst_path": "/Users/sosen/UniProjects/eng-thesis/data/datasets-unsplit/AC8-combined/CROPPED/NON-STED",
     "top": "dense1024_dropout_avg",
     "max_epochs": 50,
     "finetune": True,
@@ -75,7 +74,7 @@ for model_name, attempt_name in model_configs:
     )
 
     # Include the newly created optimizers in the call
-    test_model(model_name=model_name,
+    test_model_k_fold(model_name=model_name,
                attempt_name=attempt_name,
                optimizer=local_optimizer,
                data_augmentation=data_augmentation,
@@ -121,7 +120,7 @@ for model_name, attempt_name in model_configs:
     )
 
     # Include the newly created optimizers in the call
-    test_model(model_name=model_name,
+    test_model_k_fold(model_name=model_name,
                attempt_name=attempt_name,
                optimizer=local_optimizer,
                data_augmentation=data_augmentation,

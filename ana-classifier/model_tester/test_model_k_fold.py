@@ -39,8 +39,6 @@ def test_model_k_fold(save_path="", dst_path="", model_name="", data_augmentatio
     if not os.path.exists(test_results_directory):
         os.makedirs(test_results_directory)
 
-    test_path = os.path.join(dst_path, "test")
-    train_path = os.path.join(dst_path, "train")
     k = 5
     # use train_model_k_fold() instead of train_model()
     # get fold_val_accuracies, fold_val_f1_scores, fold_test_accuracies, fold_test_f1_scores, (fold_val_y_trues, fold_val_y_preds), (fold_test_y_trues, fold_test_y_preds), fold_histories, fold_train_times, finetune_fold_val_accuracies, finetune_fold_val_f1_scores, finetune_fold_test_accuracies, finetune_fold_test_f1_scores, (finetune_fold_val_y_trues, finetune_fold_val_y_preds), (finetune_fold_test_y_trues, finetune_fold_test_y_preds), finetune_fold_histories, finetune_fold_train_times
@@ -73,23 +71,22 @@ def test_model_k_fold(save_path="", dst_path="", model_name="", data_augmentatio
         finetune_fold_histories,  # Fine-tuning training histories for each fold
         finetune_fold_train_times  # Fine-tuning train times for each fold
     ) = train_model_k_fold(
-        train_path,  # Training directory
-        test_path,  # Test directory
-        model_name,  # Model name (e.g., "resnet50")
+        dst_path,
+        model_name,  # Model name
         data_augmentation,  # Data augmentation layers
-        top,  # Custom top layers
-        top_dropout_rate,  # Dropout rate for top layers
-        optimizer,  # Optimizer for training
-        early_stopping,  # Early stopping callback
-        metrics,  # List of metrics for evaluation
-        finetune,  # Whether to fine-tune the model
-        finetune_layers,  # Number of layers to fine-tune
-        finetune_optimizer,  # Fine-tuning optimizer
-        finetune_early_stopping,  # Early stopping for fine-tuning
-        save_directory,
-        k=k,
-        max_epochs=max_epochs,  # Max epochs for training
-        finetune_max_epochs=finetune_max_epochs  # Max epochs for fine-tuning
+        k=5,
+        head=top,
+        top_dropout_rate=top_dropout_rate,
+        optimizer=optimizer,
+        early_stopping=early_stopping,
+        metrics=metrics,
+        finetune=finetune,
+        finetune_layers=finetune_layers,
+        finetune_optimizer=finetune_optimizer,
+        finetune_early_stopping=finetune_early_stopping,
+        max_epochs=max_epochs,
+        finetune_max_epochs=finetune_max_epochs,
+        model_save_path=save_directory,
     )
     for i in range(k):
         y_true, y_pred = original_tuple[i]
