@@ -5,7 +5,7 @@ import numpy as np
 from sklearn.metrics import classification_report
 from sklearn.utils import class_weight
 from tensorflow.keras.optimizers import Adam
-from tensorflow.python.keras import layers
+from tensorflow.keras import layers
 
 from model_tester.model.get_should_train_layer import get_should_train_layer
 from model_tester.metrics.f1 import f1
@@ -86,21 +86,23 @@ def hypertune_model(train_path, test_path, model_name, data_augmentation, workin
 
         base_model = get_base_model(model_name, shape, x)
         base_model.trainable = False
-        hp_pooling = hp.Choice('pooling', values=['avg', 'max', None])
+        hp_pooling = hp.Choice('pooling', values=['avg', 'max', 'flatten'])
         if (hp_pooling == 'avg'):
             x = layers.GlobalAveragePooling2D(name="avg_pool")(base_model.output)
         elif (hp_pooling == 'max'):
             x = layers.GlobalMaxPooling2D(name="max_pool")(base_model.output)
+        elif (hp_pooling == 'flatten'):
+            x= layers.Flatten()(base_model.output)
         hp_batch_norm = hp.Choice('batch_norm', values=[True, False])
         if hp_batch_norm:
             x = layers.BatchNormalization()(x)
         hp_neurons = hp.Int('neurons', min_value=512, max_value=4096, step=256)
-        hp_dropout = hp.Int('dropout', min_value=0.01, max_value=0.4, step=0.02)
+        hp_dropout = hp.Float('dropout', min_value=0.01, max_value=0.4, step=0.02)
         x = layers.Dense(hp_neurons, activation='relu')(x)
         x = layers.Dropout(hp_dropout, name="top_dropout")(x)
         outputs = layers.Dense(num_classes, activation="softmax", name="pred")(x)
         model = tf.keras.Model(inputs, outputs, name=model_name)
-        hp_lr = hp.Choice(1e-2, 1e-3, 5e-3, 1e-4, 5e-4, 1e-5, 5e-5, 5e-6)
+        hp_lr = hp.Choice('learning_rate', values=[1e-2, 1e-3, 5e-3, 1e-4, 5e-4, 1e-5, 5e-5, 5e-6])
         model.compile(optimizer=Adam(learning_rate=hp_lr), loss="categorical_crossentropy",
                       metrics=["accuracy"] + metrics)
         return model
@@ -109,7 +111,7 @@ def hypertune_model(train_path, test_path, model_name, data_augmentation, workin
 
     tuner = keras_tuner.Hyperband(
         build_model,
-        objective='val_f1 ',
+        objective=keras_tuner.Objective("val_f1", direction="max"),
         max_epochs=100,
         factor=3,
         directory=working_dir,
