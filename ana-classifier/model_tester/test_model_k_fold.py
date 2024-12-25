@@ -145,10 +145,10 @@ def test_model_k_fold(save_path="", dst_path="", model_name="", data_augmentatio
             # save the f1 and accuracy scores arrays and their averages
             with open(os.path.join(test_results_directory, f"test_finetune_scores.json"), 'w') as f:
                 json.dump({
-                    "test_accuracies": finetune_fold_test_accuracies[i],
-                    "test_f1_scores": finetune_fold_test_f1_scores[i],
-                    "test_avg_accuracy": np.mean(finetune_fold_test_accuracies[i]),
-                    "test_avg_f1_score": np.mean(finetune_fold_test_f1_scores[i])
+                    "test_accuracies": finetune_fold_test_accuracies,
+                    "test_f1_scores": finetune_fold_test_f1_scores,
+                    "test_avg_accuracy": np.mean(finetune_fold_test_accuracies),
+                    "test_avg_f1_score": np.mean(finetune_fold_test_f1_scores)
                 }, f, indent=4)
 
     # if finetune:
