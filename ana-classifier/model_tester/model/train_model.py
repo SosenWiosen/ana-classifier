@@ -52,14 +52,14 @@ def train_model(train_path, test_path, model_name, data_augmentation, head="avgp
     train_ds = train_ds.prefetch(buffer_size=AUTOTUNE)
     val_ds = val_ds.prefetch(buffer_size=AUTOTUNE)
 
-    def copy_red_to_green_and_blue(image, label):
-        red_channel = image[..., 0:1]  # Extract only the red channel, shape (H, W, 1)
-        new_image = tf.concat([red_channel, red_channel, red_channel], axis=-1)
-        return new_image, label
-
-    train_ds = train_ds.map(copy_red_to_green_and_blue)
-    val_ds = val_ds.map(copy_red_to_green_and_blue)
-    test_ds = test_ds.map(copy_red_to_green_and_blue)
+    # def copy_red_to_green_and_blue(image, label):
+    #     red_channel = image[..., 0:1]  # Extract only the red channel, shape (H, W, 1)
+    #     new_image = tf.concat([red_channel, red_channel, red_channel], axis=-1)
+    #     return new_image, label
+    #
+    # train_ds = train_ds.map(copy_red_to_green_and_blue)
+    # val_ds = val_ds.map(copy_red_to_green_and_blue)
+    # test_ds = test_ds.map(copy_red_to_green_and_blue)
 
     if metrics is None:
         metrics = [f1]
@@ -67,13 +67,13 @@ def train_model(train_path, test_path, model_name, data_augmentation, head="avgp
     label_indices = np.argmax(labels, axis=1)
 
     # Compute class weights
-    class_weights = class_weight.compute_class_weight(
-        class_weight='balanced',
-        classes=np.unique(label_indices),
-        y=label_indices
-    )
+    # class_weights = class_weight.compute_class_weight(
+    #     class_weight='balanced',
+    #     classes=np.unique(label_indices),
+    #     y=label_indices
+    # )
 
-    train_class_weights = dict(enumerate(class_weights))
+    # train_class_weights = dict(enumerate(class_weights))
 
     inputs = tf.keras.layers.Input(shape=shape)
     x = data_augmentation(inputs)
@@ -89,7 +89,7 @@ def train_model(train_path, test_path, model_name, data_augmentation, head="avgp
 
     train_time_callback = TimeHistory()
 
-    history = model.fit(train_ds, validation_data=val_ds, epochs=max_epochs, class_weight=train_class_weights,
+    history = model.fit(train_ds, validation_data=val_ds, epochs=max_epochs,
                         callbacks=[early_stopping, train_time_callback])
     predictions = []
     y_true = []
@@ -132,7 +132,7 @@ def train_model(train_path, test_path, model_name, data_augmentation, head="avgp
     finetune_time_callback = TimeHistory()
 
     finetune_history = model.fit(train_ds, validation_data=val_ds, epochs=finetune_max_epochs,
-                                 class_weight=train_class_weights,
+                                 # class_weight=train_class_weights,
                                  callbacks=[finetune_early_stopping, finetune_time_callback])
     if model_save_path:
         model_file_path = os.path.join(model_save_path, "model-finetune.keras")
