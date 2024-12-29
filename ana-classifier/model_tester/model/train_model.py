@@ -52,14 +52,14 @@ def train_model(train_path, test_path, model_name, data_augmentation, head="avgp
     train_ds = train_ds.prefetch(buffer_size=AUTOTUNE)
     val_ds = val_ds.prefetch(buffer_size=AUTOTUNE)
 
-    # def copy_red_to_green_and_blue(image, label):
-    #     red_channel = image[..., 0:1]  # Extract only the red channel, shape (H, W, 1)
-    #     new_image = tf.concat([red_channel, red_channel, red_channel], axis=-1)
-    #     return new_image, label
-    #
-    # train_ds = train_ds.map(copy_red_to_green_and_blue)
-    # val_ds = val_ds.map(copy_red_to_green_and_blue)
-    # test_ds = test_ds.map(copy_red_to_green_and_blue)
+    def copy_red_to_green_and_blue(image, label):
+        red_channel = image[..., 0:1]  # Extract only the red channel, shape (H, W, 1)
+        new_image = tf.concat([red_channel, red_channel, red_channel], axis=-1)
+        return new_image, label
+
+    train_ds = train_ds.map(copy_red_to_green_and_blue)
+    val_ds = val_ds.map(copy_red_to_green_and_blue)
+    test_ds = test_ds.map(copy_red_to_green_and_blue)
 
     if metrics is None:
         metrics = [f1]
