@@ -12,6 +12,10 @@ import numpy as np
 from keras.models import load_model
 from keras.preprocessing import image
 
+import base64  # For handling base64 encoding
+from PIL import Image  # For image manipulation
+from io import BytesIO  # For handling image as a byte buffer
+
 app = Flask(__name__)
 CORS(app)
 # Configuration
@@ -33,6 +37,30 @@ class RequestLog(db.Model):
     image_name = db.Column(db.String(100), nullable=False)
     prediction_result = db.Column(db.String(100), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+app.config['UPLOAD_FOLDER'] = "path_to_upload_folder"
+app.config['MODELS_FOLDER'] = "backend/models/"
+
+models = {}  # This will store model instances
+
+def load_models():
+    models_folder = app.config['MODELS_FOLDER']
+    for model_dir in os.listdir(models_folder):
+        config_path = os.path.join(models_folder, model_dir, 'model_config.json')
+        if os.path.isfile(config_path):
+            with open(config_path, 'r') as f:
+                config = json.load(f)
+                # Construct the full path to the model file
+                model_file_path = os.path.join(models_folder, model_dir, config['model_path'])
+                model_name = config['name']  # Use the name from config
+                if os.path.isfile(model_file_path):
+                    models[model_name] = {
+                        'model': load_model(model_file_path),
+                        'config': config
+                    }
+                    print(f"Loaded model {model_name} from {model_file_path}")
+
+load_models()
 
 # Decorator for authorization
 def token_required(f):
@@ -64,44 +92,40 @@ def login_user():
     data = request.json
     user = User.query.filter_by(username=data['username']).first()
     if user and check_password_hash(user.password, data['password']):
-        token = jwt.encode({'id': user.id, 
-                            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)}, 
+        token = jwt.encode({'id': user.id,
+                            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)},
                             app.config['SECRET_KEY'], algorithm="HS256")
         return jsonify({'token': token})
     return jsonify({'message': 'Invalid username or password.'}), 401
 
+@app.route('/models', methods=['GET'])
+def list_models():
+    if models:
+        available_models = list(models.keys())
+        return jsonify({'available_models': available_models}), 200
+    else:
+        return jsonify({'message': 'No models available'}), 204
 @app.route('/predict', methods=['POST'])
 @token_required
 def predict_image(current_user):
-    if 'file' not in request.files:
-        return jsonify({'message': 'No file part in the request'}), 400
+    data = request.json
+    if 'image' not in data or 'model_name' not in data:
+        return jsonify({'message': 'Missing image or model name'}), 400
+    image_data = data['image']
+    model_name = data['model_name']
+    if not image_data:
+        return jsonify({'message': 'Empty image data'}), 400
+    if model_name not in models:
+        return jsonify({'message': 'Model not available'}), 404
 
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({'message': 'No file selected'}), 400
+    # Assuming decode_and_process_image handles model-specific preprocessing
+    image = decode_and_process_image(image_data, models[model_name]['config'])
 
-    filename = secure_filename(file.filename)
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-    file.save(filepath)
-
-    # Load Model
-    model = load_model('your_model.h5')  # Replace with the path to your Keras model
-
-    # Preprocess Image for Prediction
-    img = image.load_img(filepath, target_size=(224, 224))  # Change target_size as per your model input
-    img_array = image.img_to_array(img)
-    img_array = np.expand_dims(img_array, axis=0)
-    img_array /= 255.0  # Normalize if required by your model
-
-    prediction = model.predict(img_array)
+    model = models[model_name]['model']
+    prediction = model.predict(image)
     predicted_class = np.argmax(prediction, axis=-1)[0]
 
-    # Log Request and Prediction Result
-    new_request = RequestLog(user_id=current_user.id, image_name=filename, prediction_result=str(predicted_class))
-    db.session.add(new_request)
-    db.session.commit()
-
-    return jsonify({'file': filename, 'prediction': str(predicted_class)})
+    return jsonify({'prediction': str(predicted_class)})
 
 @app.route('/history', methods=['GET'])
 @token_required

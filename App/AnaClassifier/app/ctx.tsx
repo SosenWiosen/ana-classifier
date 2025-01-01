@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import axios from "axios";
-
+import { API } from "@/constants/API";
+import { useStorageState, setStorageItemAsync } from "./useStorageState";
 
 const AuthContext = React.createContext<{
   signIn: (username: string, password: string) => Promise<void>;
@@ -15,37 +16,25 @@ const AuthContext = React.createContext<{
 });
 
 export function useSession() {
-  const value = React.useContext(AuthContext);
+  const value = useContext(AuthContext);
   if (!value) {
     throw new Error("useSession must be wrapped in a <SessionProvider />");
   }
   return value;
 }
 
-export const SessionProvider: React.FC<React.PropsWithChildren> = (props) => {
+export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [session, setSession] = useState<{ token: string | null; username: string | null }>({
-    token: null,
-    username: null,
-  });
+  const [token, setToken] = useStorageState('token');
+  const [username, setUsername] = useStorageState('username');
 
   const signIn = async (username: string, password: string) => {
     setIsLoading(true);
     try {
-      const response = await axios.post("http://localhost:5000/login", {
-        username,
-        password,
-      });
-
-      // The backend returns a JWT token
+      const response = await axios.post(`${API.URL}/login`, { username, password });
       const { token } = response.data;
-
-      // Save the token and username into the React state (and optionally localStorage/sessionStorage)
-      setSession({ token, username });
-
-      // Optionally, persist session in localStorage or cookies
-      localStorage.setItem("token", token);
-      localStorage.setItem("username", username);
+      setToken(token);
+      setUsername(username);
     } catch (error) {
       if (axios.isAxiosError(error)) {
         console.error("Sign-in error:", error.response?.data?.message || error.message);
@@ -59,35 +48,30 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = (props) => {
     }
   };
 
-  const signOut = () => {
-    console.log('signing out')
-    // Clear session state
-    setSession({ token: null, username: null });
-
-    // Remove session data from localStorage or cookies
-    localStorage.removeItem("token");
-    localStorage.removeItem("username");
+  const signOut = async () => {
+    await setStorageItemAsync('token', null);
+    await setStorageItemAsync('username', null);
+    setUsername(null);
+    setToken(null);
   };
 
-  // Check if a session exists on mount (e.g., JWT in localStorage)
-  React.useEffect(() => {
-    const token = localStorage.getItem("token");
-    const username = localStorage.getItem("username");
-    if (token && username) {
-      setSession({ token, username });
+  // Check if a session exists on mount
+  useEffect(() => {
+    if (token[1] && username[1]) {
+      // You may want to validate or refresh the token here if necessary
     }
-  }, []);
+  }, [token[1], username[1]]);
 
   return (
     <AuthContext.Provider
       value={{
         signIn,
         signOut,
-        session,
-        isLoading,
+        session: { token: token[1], username: username[1] },
+        isLoading
       }}
     >
-      {props.children}
+      {children}
     </AuthContext.Provider>
   );
 };
