@@ -6,6 +6,7 @@ from werkzeug.utils import secure_filename
 import os
 import uuid
 import jwt
+import json
 import datetime
 from functools import wraps
 import numpy as np
@@ -22,6 +23,8 @@ CORS(app)
 app.config['SECRET_KEY'] = 'your_secret_key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 app.config['UPLOAD_FOLDER'] = './uploads'
+app.config['MODELS_FOLDER'] = "./models/"
+
 
 db = SQLAlchemy(app)
 
@@ -38,27 +41,38 @@ class RequestLog(db.Model):
     prediction_result = db.Column(db.String(100), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
-app.config['UPLOAD_FOLDER'] = "path_to_upload_folder"
-app.config['MODELS_FOLDER'] = "backend/models/"
 
 models = {}  # This will store model instances
 
 def load_models():
     models_folder = app.config['MODELS_FOLDER']
+    print("Loading models, base directory:", models_folder)
     for model_dir in os.listdir(models_folder):
+        print("Found directory:", model_dir)
         config_path = os.path.join(models_folder, model_dir, 'model_config.json')
         if os.path.isfile(config_path):
+            print("Found model config:", config_path)
             with open(config_path, 'r') as f:
                 config = json.load(f)
-                # Construct the full path to the model file
                 model_file_path = os.path.join(models_folder, model_dir, config['model_path'])
-                model_name = config['name']  # Use the name from config
-                if os.path.isfile(model_file_path):
-                    models[model_name] = {
-                        'model': load_model(model_file_path),
-                        'config': config
-                    }
-                    print(f"Loaded model {model_name} from {model_file_path}")
+                model_name = config['name']
+                models[model_name] = {
+                    'model_path': model_file_path,
+                    'config': config,
+                    'loaded_model': None
+                }
+                print(f"Model config for {model_name} loaded from {model_file_path}")
+        else:
+            print("No config found in", model_dir)
+    print("Models loaded:", models.keys())
+
+def get_model(model_name):
+    model_info = models.get(model_name)
+    if model_info and model_info['loaded_model'] is None:
+        # Load and cache the model
+        model_info['loaded_model'] = load_model(model_info['model_path'],safe_mode=False)
+        print(f"Loaded model {model_name} from {model_info['model_path']}")
+    return model_info['loaded_model'] if model_info else None
 
 load_models()
 
@@ -118,13 +132,14 @@ def predict_image(current_user):
     if model_name not in models:
         return jsonify({'message': 'Model not available'}), 404
 
+    model = get_model(model_name)  # Load model if not already loaded
+    if not model:
+        return jsonify({'message': 'Error loading model'}), 500
+
     # Assuming decode_and_process_image handles model-specific preprocessing
     image = decode_and_process_image(image_data, models[model_name]['config'])
-
-    model = models[model_name]['model']
     prediction = model.predict(image)
     predicted_class = np.argmax(prediction, axis=-1)[0]
-
     return jsonify({'prediction': str(predicted_class)})
 
 @app.route('/history', methods=['GET'])

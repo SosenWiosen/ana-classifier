@@ -28,32 +28,35 @@ common_params = {
 }
 
 for model_name, attempt_name in model_configs:
-    # Ensure a new optimizer is created each time
-    local_optimizer = Adam()
-    local_finetune_optimizer = Adam(learning_rate=1e-5)
+    for i in range(21):  # Create 21 steps from 0 to 1 (inclusive) with increments of 0.05
+        rotation_factor = i * 0.05  # Calculate current rotation factor
 
-    data_augmentation = tf.keras.Sequential([
-        # tf.keras.layers.RandomFlip("horizontal"),
-        # tf.keras.layers.RandomFlip("vertical"),
-        # tf.keras.layers.RandomContrast(0.05),
-        tf.keras.layers.RandomRotation(0.5),
-    ])
+        # Recreate Adam optimizers for each experiment
+        local_optimizer = Adam()
+        local_finetune_optimizer = Adam(learning_rate=1e-5)
 
-    early_stopping = EarlyStopping(
-        monitor='val_f1',  # specify the F1 score for early stopping
-        patience=5,
-        mode='max',  #
-        restore_best_weights=True
-    )
+        # Define the data augmentation with the current rotation factor
+        data_augmentation = tf.keras.Sequential([
+            tf.keras.layers.RandomRotation(rotation_factor),
+        ])
 
+        # Set up early stopping
+        early_stopping = EarlyStopping(
+            monitor='val_f1',
+            patience=5,
+            mode='max',
+            restore_best_weights=True
+        )
 
-    # Include the newly created optimizers in the call
-    test_model(model_name=model_name,
-               attempt_name="rotation_05_"+attempt_name,
-               optimizer=local_optimizer,
-               data_augmentation=data_augmentation,
-               early_stopping=early_stopping,
-               **common_params)
+        # Run the test_model function with the current setup
+        test_model(
+            model_name=model_name,
+            attempt_name=f"rotation_{rotation_factor:.2f}_{attempt_name}",
+            optimizer=local_optimizer,
+            data_augmentation=data_augmentation,
+            early_stopping=early_stopping,
+            **common_params
+        )
 
 for model_name, attempt_name in model_configs:
     # Ensure a new optimizer is created each time

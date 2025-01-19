@@ -1,22 +1,69 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, FlatList, Button, Image, Alert } from "react-native";
+import {
+  StyleSheet,
+  FlatList,
+  Button,
+  Image,
+  Alert,
+  Dimensions,
+  Platform,
+} from "react-native";
 import { View, Text } from "@/components/Themed";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 import { useSession } from "@/app/ctx";
 import { API } from "@/constants/API";
+import ModelPicker from "@/components/ModelPicker";
+
 type HistoryItem = {
   image_name: string;
   timestamp: string;
   prediction_result: string;
 };
+type ModelItem = {
+  name: string;
+};
+
+// Get the width of the current window
+const DEVICE_WIDTH = Dimensions.get("window").width;
+
+// Conditionally calculate the width for desktop or browser environments
+const isWebDesktop = Platform.OS === "web" && DEVICE_WIDTH > 768; // Adjust the threshold as needed
 
 export default function HomeScreen() {
-  const { session } = useSession(); // Access the user's session (JWT token)
-  const [history, setHistory] = useState<HistoryItem[]>([]); // State to store prediction history
-  const [selectedImage, setSelectedImage] = useState<ImagePicker.ImagePickerAsset | null>(null); // State to store the picked image
-  const [isUploading, setIsUploading] = useState(false); // State to manage upload state
-  const [prediction, setPrediction] = useState<string | null>(null); // Store prediction result
+  const { session } = useSession();
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [models, setModels] = useState<ModelItem[]>([]);
+  const [selectedImage, setSelectedImage] =
+    useState<ImagePicker.ImagePickerAsset | null>(null);
+  const [selectedModel, setSelectedModel] = useState<string>("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [prediction, setPrediction] = useState<string | null>(null);
+
+  // Fetch available models from the backend
+  const fetchModels = async () => {
+    try {
+      const response = await axios.get(API.URL + "/models", {
+        headers: { "x-access-token": session?.token },
+      });
+      setModels(
+        response.data.available_models.map((modelName: any) => ({
+          name: modelName,
+        }))
+      );
+      if (response.data.available_models.length > 0) {
+        setSelectedModel(response.data.available_models[0]);
+      }
+    } catch (error: any) {
+      console.error("Error fetching models:", error.message);
+      Alert.alert("Error", "Unable to fetch models.");
+    }
+  };
+
+  useEffect(() => {
+    fetchHistory();
+    fetchModels();
+  }, []);
 
   // Fetch prediction history from the backend
   const fetchHistory = async () => {
@@ -49,71 +96,86 @@ export default function HomeScreen() {
       Alert.alert("Error", "Please select an image first.");
       return;
     }
-  
-    setIsUploading(true); // Show uploading state
-  
-    // Convert image to base64
+    if (!selectedModel) {
+      Alert.alert("Error", "Please select a model first.");
+      return;
+    }
+    setIsUploading(true);
     const convertToBase64 = async () => {
       const response = await fetch(selectedImage.uri);
       const blob = await response.blob();
-      return new Promise((resolve, reject) => {
+      return new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onloadend = () => {
-          resolve(reader.result);
+          resolve(reader.result as string);
         };
         reader.onerror = reject;
         reader.readAsDataURL(blob);
       });
     };
-  
     try {
       const base64 = await convertToBase64();
-      const base64Data = (base64 as string).replace(/^data:image\/\w+;base64,/, ""); // Strip out the metadata
-  
-      // Prepare the JSON payload
+      const base64Data = base64.replace(/^data:image\/\w+;base64,/, "");
       const payload = {
         image: base64Data,
+        model_name: selectedModel,
       };
-  
-      // Send the POST request to the backend
       const response = await axios.post(API.URL + "/predict", payload, {
         headers: {
-          "x-access-token": session?.token, // JWT token for authentication
-          "Content-Type": "application/json", // Set the content type to application/json
+          "x-access-token": session?.token,
+          "Content-Type": "application/json",
         },
       });
-  
-      setPrediction(response.data.prediction); // Handle prediction response
-      fetchHistory(); // Fetch history after prediction
+      setPrediction(response.data.prediction);
+      fetchHistory();
     } catch (error: any) {
-      // Display error message from server
-      Alert.alert("Error", error.response?.data?.message || "Error uploading image.");
+      Alert.alert(
+        "Error",
+        error.response?.data?.message || "Error uploading image."
+      );
     } finally {
-      setIsUploading(false); // Reset uploading state
+      setIsUploading(false);
     }
   };
-
-  // Fetch history when the component loads
-  useEffect(() => {
-    fetchHistory();
-  }, []);
 
   return (
     <View style={styles.container}>
       {/* Section: Title */}
-      <Text style={styles.title}>Predict the ANA Pattern of your image.</Text>
-      <Text style={styles.instructions}> 1. Pick the image by pressing the button.</Text>
-      <Text style={styles.instructions}> 2. Upload image to the server.</Text>
-      <Text style={styles.instructions}> 3. Wait for the results which will be displayer below in the History field.</Text>
+      <Text style={styles.title}>Predict the ANA Pattern of your image</Text>
+      <Text style={styles.instructions}>
+        1. Select the model from the dropdown.
+      </Text>
+      <Text style={styles.instructions}>
+        2. Pick the image by pressing the button.
+      </Text>
+      <Text style={styles.instructions}>
+        3. Upload the image to the server.
+      </Text>
+      <Text style={styles.instructions}>
+        4. Wait for the results which will be displayed below in the History
+        field.
+      </Text>
+
       {/* Section: Image Picker & Upload */}
       <View style={styles.buttonsContainer}>
         <Button title="Pick an Image" onPress={pickImage} />
-        {selectedImage && (
-          <Image
-            source={{ uri: selectedImage.uri }}
-            style={styles.selectedImage}
-          />
-        )}
+        <View style={styles.imagePlaceholder}>
+          {selectedImage ? (
+            <Image
+              source={{ uri: selectedImage.uri }}
+              style={styles.selectedImage}
+            />
+          ) : (
+            <Text style={styles.placeholderText}>No Image Selected</Text>
+          )}
+        </View>
+
+        {/* Model Selector */}
+        <ModelPicker
+          models={models}
+          selectedModel={selectedModel}
+          onSelectModel={(model) => setSelectedModel(model)}
+        />
         <View style={styles.uploadButton}>
           <Button
             title={isUploading ? "Uploading..." : "Upload & Predict"}
@@ -128,9 +190,7 @@ export default function HomeScreen() {
 
       {/* Section: Show Prediction Result */}
       {prediction && (
-        <Text style={styles.prediction}>
-          Prediction: {prediction}
-        </Text>
+        <Text style={styles.prediction}>Prediction: {prediction}</Text>
       )}
 
       {/* Section: Prediction History */}
@@ -141,9 +201,7 @@ export default function HomeScreen() {
         keyExtractor={(item, index) => index.toString()}
         renderItem={({ item }) => (
           <View style={styles.historyItem}>
-            <Text style={styles.historyText}>
-              Image: {item.image_name}
-            </Text>
+            <Text style={styles.historyText}>Image: {item.image_name}</Text>
             <Text style={styles.historyText}>
               Prediction: {item.prediction_result}
             </Text>
@@ -181,11 +239,30 @@ const styles = StyleSheet.create({
   uploadButton: {
     marginTop: 10, // Add spacing between the buttons
   },
+  imagePlaceholder: {
+    width: isWebDesktop ? "50%" : "100%", // Conditionally provide width for desktop vs mobile
+    height: 300, // Fixed height for the image placeholder
+    backgroundColor: "#f0f0f0", // Light gray background for the placeholder
+    justifyContent: "center", // Center content vertically
+    alignItems: "center", // Center content horizontally
+    marginVertical: 20, // Provide spacing above and below
+    borderWidth: 1,
+    borderColor: "#ccc", // Placeholder border color
+    borderRadius: 5, // Optional: Make corners rounded
+    alignSelf: "center", // Ensure it is centered horizontally
+  },
   selectedImage: {
+    flex: 1, // Ensures the image fills the available space
+    width: "100%", // Takes the full width of the placeholder
+    resizeMode: "contain", // Fits the image into the frame without cropping
+  },
+  placeholderText: {
+    fontSize: 16,
+    color: "#aaa", // Light gray text color to match the placeholder style
+  },
+  picker: {
+    height: 50,
     width: "100%",
-    height: 200,
-    resizeMode: "contain",
-    marginVertical: 20,
   },
   prediction: {
     fontSize: 18,

@@ -1,0 +1,6 @@
+{
+  "name": "EfficientNetB0",
+  "model_path": "model.keras",
+  "input_shape": [224, 224],
+  "copy_red_channel": true
+}

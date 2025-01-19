@@ -28,3 +28,25 @@ experiments/
 *.eps
 # Ignore specific script names or extensions if needed
 # data/scripts/*.pyc  # Uncomment if you want to exclude .pyc files
+
+# Ignore Python virtual environment
+venv/
+.env
+
+# Ignore SQLite database (it's generated and not necessary to track)
+*.db
+
+# Ignore uploaded images (since they are user-generated data)
+uploads/
+
+# Ignore compiled Python files and cache
+__pycache__/
+*.pyc
+
+# Ignore large model files if hosted elsewhere
+your_model.h5
+
+# Ignore any log files or temporary files
+*.log
+*.tmp
+*.tar.gz
