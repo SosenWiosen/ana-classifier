@@ -15,6 +15,7 @@ def test_model(save_path="", dst_path="", model_name="", data_augmentation="", t
                finetune_early_stopping=None, finetune_max_epochs=10, attempt_name=""):
     if attempt_name == "":
         attempt_name = model_name
+    print(save_path)
 
     # Format the current datetime and create a path
     current_time = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
@@ -32,12 +33,10 @@ def test_model(save_path="", dst_path="", model_name="", data_augmentation="", t
         os.makedirs(plots_directory)
     if not os.path.exists(test_results_directory):
         os.makedirs(test_results_directory)
-
-    test_path = os.path.join(dst_path, "test")
-    train_path = os.path.join(dst_path, "train")
+    print(finetune_plots_directory)
 
     model, class_names, history, train_times, original_tuple, test_original_tuple, finetune_history, finetune_times, finetune_tuple, test_finetune_tuple = train_model(
-        train_path, test_path, model_name, data_augmentation, top, top_dropout_rate, optimizer, early_stopping, metrics,
+        dst_path,  model_name, data_augmentation, top, top_dropout_rate, optimizer, early_stopping, metrics,
         finetune,
         finetune_layers, finetune_optimizer, finetune_early_stopping, save_directory, max_epochs=max_epochs,
         finetune_max_epochs=finetune_max_epochs)
@@ -48,9 +47,9 @@ def test_model(save_path="", dst_path="", model_name="", data_augmentation="", t
     save_combined_plot(history, plots_directory)
     save_classification_report(y_true, y_pred, os.path.join(plots_directory, "classification_report.json"), class_names)
     save_training_times(train_times, os.path.join(plots_directory, "training_times.json"))
-    save_classification_report(test_y_true, test_y_pred,
-                               os.path.join(test_results_directory, "classification_report.json"), class_names)
-    export_confusion_matrix(test_y_true, test_y_pred, class_names, test_results_directory, filename='cfm_test')
+    # save_classification_report(test_y_true, test_y_pred,
+                            #    os.path.join(test_results_directory, "classification_report.json"), class_names)
+    # export_confusion_matrix(test_y_true, test_y_pred, class_names, test_results_directory, filename='cfm_test')
 
     if finetune:
         finetune_y_true, finetune_y_pred = finetune_tuple
@@ -61,8 +60,8 @@ def test_model(save_path="", dst_path="", model_name="", data_augmentation="", t
         save_classification_report(finetune_y_true, finetune_y_pred,
                                    os.path.join(finetune_plots_directory, "classification_report.json"), class_names)
         save_training_times(train_times, os.path.join(finetune_plots_directory, "training_times.json"))
-        save_classification_report(test_finetune_y_true, test_finetune_y_pred,
-                                   os.path.join(test_results_directory, "classification_report_finetune.json"),
-                                   class_names)
-        export_confusion_matrix(test_finetune_y_true, test_finetune_y_pred, class_names, test_results_directory,
-                                filename='cfm_test_finetune')
+        # save_classification_report(test_finetune_y_true, test_finetune_y_pred,
+                                #    os.path.join(test_results_directory, "classification_report_finetune.json"),
+                                #    class_names)
+        # export_confusion_matrix(test_finetune_y_true, test_finetune_y_pred, class_names, test_results_directory,
+                                # filename='cfm_test_finetune')

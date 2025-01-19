@@ -6,9 +6,9 @@ import cv2
 from brightest_square import find_brightest_square
 
 
-source_dir = "/Users/sosen/UniProjects/eng-thesis/data/data-uncompressed/2D-tiff-grouped-filtered/"
-destination_dir = "/Users/sosen/UniProjects/eng-thesis/data/data-uncompressed/2D-tiff-brightest-areas-128/"
-square_size = 128  # Define the size of the square you want to extract
+source_dir = "/home/homelab/sosen/data/datasets-all/datasets-unsplit/AC8-combined/CROPPED/STED"
+destination_dir = "/home/homelab/sosen/data/datasets-all/datasets-unsplit/AC8-combined/brightest_squares_64/STED"
+square_size = 64  # Define the size of the square you want to extract
 
 # Ensure the destination directory exists
 os.makedirs(destination_dir, exist_ok=True)

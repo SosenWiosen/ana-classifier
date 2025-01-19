@@ -16,6 +16,10 @@ def get_top(base_model_output, num_classes, top, dropout_rate):
             x = layers.BatchNormalization()(x)
             x = layers.Dropout(dropout_rate, name="top_dropout")(x)
             outputs = layers.Dense(num_classes, activation="softmax", name="pred")(x)
+        elif top == "simple":
+            x = layers.GlobalAveragePooling2D(name="avg_pool")(base_model_output)
+            x = layers.Dense(1000, activation='relu')(x)
+            outputs = layers.Dense(num_classes, activation="softmax", name="pred")(x)
         elif top == "maxpool":
             x = layers.GlobalMaxPooling2D(name="max_pool")(base_model_output)
             x = layers.BatchNormalization()(x)

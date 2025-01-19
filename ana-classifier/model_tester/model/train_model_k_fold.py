@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+import gc
 from sklearn.metrics import classification_report
 from sklearn.model_selection import KFold
 from sklearn.utils import class_weight
@@ -16,7 +17,7 @@ from model_tester.model.get_preprocess_input import get_preprocess_input
 from model_tester.model.get_top import get_top
 
 
-def train_model_k_fold(dst_path, model_name, data_augmentation_factory, k=5, head="avgpool", top_dropout_rate=0.2,
+def train_model_k_fold(dst_path, model_name, data_augmentation_factory, k=4, head="avgpool", top_dropout_rate=0.2,
                        optimizer_factory=lambda: "adam", early_stopping_factory= lambda: [], metrics=None, finetune=False, finetune_layers=20,
                        finetune_optimizer_factory= lambda: "adam",
                        finetune_early_stopping_factory=lambda: [], model_save_path=None, max_epochs=20, finetune_max_epochs=10):
@@ -24,7 +25,7 @@ def train_model_k_fold(dst_path, model_name, data_augmentation_factory, k=5, hea
     shape = get_input_shape(model_name)
 
     img_height, img_width = shape[:2]  # Extract the first two elements
-    batch_size = 32
+    batch_size = 16
 
     def load_full_dataset(path):
         dataset = tf.keras.utils.image_dataset_from_directory(
@@ -131,10 +132,19 @@ def train_model_k_fold(dst_path, model_name, data_augmentation_factory, k=5, hea
         model.compile(optimizer=optimizer_factory(), loss="categorical_crossentropy", metrics=["accuracy"] + metrics)
 
         train_time_callback = TimeHistory()
+        checkpoint_path = os.path.join(model_save_path, f"{fold_no}_best_weights.keras") if model_save_path else f"{fold_no}_best_weights.keras"
+        model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+            filepath=checkpoint_path,
+            save_best_only=True,
+            verbose=1,
+            monitor="val_accuracy",  # Monitor validation accuracy
+            mode="max",
+        )
 
         history = model.fit(train_images, train_labels, validation_data=(val_images, val_labels), epochs=max_epochs,
-                            class_weight=train_class_weights,
-                            callbacks=[early_stopping_factory(), train_time_callback])
+                            # class_weight=train_class_weights,
+                            callbacks=[early_stopping_factory(), train_time_callback, model_checkpoint_callback])
+        model.load_weights(checkpoint_path)
         # Validation Evaluation
         predictions = []
         y_true = []
@@ -151,6 +161,9 @@ def train_model_k_fold(dst_path, model_name, data_augmentation_factory, k=5, hea
         if model_save_path:
             model_file_path = os.path.join(model_save_path, f"model_fold_{fold_no}.keras")
             model.save(model_file_path)
+            export_path = os.path.join(model_save_path, f"model_fold_{fold_no}exported_model")
+            model.export(export_path, verbose=True)  # Export lightweight TF SavedModel
+            print(f"Model exported for inference to: {export_path}")
 
         # Test Evaluation
         test_predictions = []
@@ -198,14 +211,26 @@ def train_model_k_fold(dst_path, model_name, data_augmentation_factory, k=5, hea
         )
 
         finetune_time_callback = TimeHistory()
+        finetune_checkpoint_path = os.path.join(model_save_path, f"{fold_no}best_weights_finetune.keras") if model_save_path else f"{fold_no}best_weights_finetune.keras"
+        finetune_model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+            filepath=finetune_checkpoint_path,
+            save_best_only=True,
+            verbose=1,
+            monitor="val_accuracy",  # Monitor validation accuracy
+            mode="max",
+        )
 
         finetune_history = model.fit(train_images, train_labels, validation_data=(val_images, val_labels),
                                      epochs=finetune_max_epochs,
                                      class_weight=train_class_weights,
-                                     callbacks=[finetune_early_stopping_factory(), finetune_time_callback])
+                                     callbacks=[finetune_early_stopping_factory(), finetune_time_callback, finetune_model_checkpoint_callback])
+        model.load_weights(finetune_checkpoint_path)
         if model_save_path:
             model_file_path = os.path.join(model_save_path, f"model_fold_{fold_no}_finetune.keras")
             model.save(model_file_path)
+            export_path = os.path.join(model_save_path, f"model_fold_{fold_no}exported_model")
+            model.export(export_path, verbose=True)  # Export lightweight TF SavedModel
+            print(f"Model exported for inference to: {export_path}")
         finetune_predictions = []
         finetune_y_true = []
 
@@ -237,6 +262,8 @@ def train_model_k_fold(dst_path, model_name, data_augmentation_factory, k=5, hea
         finetune_fold_val_y_preds.append(y_pred)
         finetune_fold_test_y_trues.append(test_finetune_y_true)
         finetune_fold_test_y_preds.append(test_finetune_y_pred)
+        gc.collect()
+        fold_no=fold_no+1
 
     if finetune:
         return class_names, fold_val_accuracies, fold_val_f1_scores, fold_test_accuracies, fold_test_f1_scores, (fold_val_y_trues, fold_val_y_preds), (fold_test_y_trues, fold_test_y_preds), fold_histories, fold_train_times, finetune_fold_val_accuracies, finetune_fold_val_f1_scores, finetune_fold_test_accuracies, finetune_fold_test_f1_scores, (finetune_fold_val_y_trues, finetune_fold_val_y_preds), (finetune_fold_test_y_trues, finetune_fold_test_y_preds), finetune_fold_histories, finetune_fold_train_times

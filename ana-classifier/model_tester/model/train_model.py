@@ -15,7 +15,7 @@ from model_tester.model.get_preprocess_input import get_preprocess_input
 from model_tester.model.get_top import get_top
 
 
-def train_model(train_path, test_path, model_name, data_augmentation, head="avgpool", top_dropout_rate=0.2,
+def train_model(dst_path, model_name, data_augmentation, head="avgpool", top_dropout_rate=0.2,
                 optimizer="adam", early_stopping=None, metrics=None, finetune=False, finetune_layers=20,
                 finetune_optimizer="adam",
                 finetune_early_stopping=None, model_save_path=None, max_epochs=20, finetune_max_epochs=10):
@@ -28,7 +28,7 @@ def train_model(train_path, test_path, model_name, data_augmentation, head="avgp
     batch_size = 32
 
     train_ds, val_ds = tf.keras.utils.image_dataset_from_directory(
-        directory=train_path,
+        directory=dst_path,
         labels='inferred',
         subset="both",
         label_mode='categorical',
@@ -38,13 +38,6 @@ def train_model(train_path, test_path, model_name, data_augmentation, head="avgp
         seed=123,
     )
 
-    test_ds = tf.keras.utils.image_dataset_from_directory(
-        directory=test_path,
-        labels='inferred',
-        label_mode='categorical',
-        image_size=(img_height, img_width),
-        batch_size=batch_size,
-    )
     class_names = train_ds.class_names
     num_classes = len(class_names)
 
@@ -59,7 +52,7 @@ def train_model(train_path, test_path, model_name, data_augmentation, head="avgp
 
     train_ds = train_ds.map(copy_red_to_green_and_blue)
     val_ds = val_ds.map(copy_red_to_green_and_blue)
-    test_ds = test_ds.map(copy_red_to_green_and_blue)
+    # test_ds = test_ds.map(copy_red_to_green_and_blue)
 
     if metrics is None:
         metrics = [f1]
@@ -76,8 +69,11 @@ def train_model(train_path, test_path, model_name, data_augmentation, head="avgp
     train_class_weights = dict(enumerate(class_weights))
 
     inputs = tf.keras.layers.Input(shape=shape)
-    x = data_augmentation(inputs)
-
+    if data_augmentation=="":
+        x=inputs
+    else:
+        x = data_augmentation(inputs)
+    # x = inputs
     preprocess_input = tf.keras.layers.Lambda(lambda x: get_preprocess_input(model_name)(x))
     x = preprocess_input(x)
 
@@ -88,9 +84,18 @@ def train_model(train_path, test_path, model_name, data_augmentation, head="avgp
     model.compile(optimizer=optimizer, loss="categorical_crossentropy", metrics=["accuracy"] + metrics)
 
     train_time_callback = TimeHistory()
+    checkpoint_path = os.path.join(model_save_path, "best_weights.keras") if model_save_path else "best_weights.keras"
+    model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+        filepath=checkpoint_path,
+        save_best_only=True,
+        verbose=1,
+        monitor="val_accuracy",  # Monitor validation accuracy
+        mode="max",
+    )
 
-    history = model.fit(train_ds, validation_data=val_ds, epochs=max_epochs, class_weight=train_class_weights,
-                        callbacks=[early_stopping, train_time_callback])
+    history = model.fit(train_ds, validation_data=val_ds, epochs=max_epochs, # class_weight=train_class_weights,
+                        callbacks=[early_stopping, train_time_callback,model_checkpoint_callback])
+    model.load_weights(checkpoint_path)
     predictions = []
     y_true = []
 
@@ -104,15 +109,19 @@ def train_model(train_path, test_path, model_name, data_augmentation, head="avgp
     if model_save_path:
         model_file_path = os.path.join(model_save_path, "model.keras")
         model.save(model_file_path)
+            # Add exporting logic for inference (Stand-alone, lightweight SavedModel)
+        export_path = os.path.join(model_save_path, "exported_model")
+        model.export(export_path, verbose=True)  # Export lightweight TF SavedModel
+        print(f"Model exported for inference to: {export_path}")
 
     test_predictions = []
     test_y_true = []
-    for images, labels in test_ds:
-        preds = model.predict(images)
-        test_predictions.extend(np.argmax(preds, axis=1))
-        test_y_true.extend(np.argmax(labels.numpy(), axis=1))
-    test_y_pred = np.array(test_predictions)
-    test_y_true = np.array(test_y_true)
+    # for images, labels in test_ds:
+    #     preds = model.predict(images)
+    #     test_predictions.extend(np.argmax(preds, axis=1))
+    #     test_y_true.extend(np.argmax(labels.numpy(), axis=1))
+    # test_y_pred = np.array(test_predictions)
+    # test_y_true = np.array(test_y_true)
 
     if not finetune:
         return model, class_names, history, train_time_callback.times, (y_true, y_pred), (
@@ -130,14 +139,26 @@ def train_model(train_path, test_path, model_name, data_augmentation, head="avgp
     )
 
     finetune_time_callback = TimeHistory()
+        # Add ModelCheckpoint callback to save the best weights
+    finetune_checkpoint_path = os.path.join(model_save_path, "best_weights_finetune.keras") if model_save_path else "best_weights_finetune.keras"
+    finetune_model_checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+        filepath=finetune_checkpoint_path,
+        save_best_only=True,
+        verbose=1,
+        monitor="val_accuracy",  # Monitor validation accuracy
+        mode="max",
+    )
 
     finetune_history = model.fit(train_ds, validation_data=val_ds, epochs=finetune_max_epochs,
-                                 class_weight=train_class_weights,
-                                 callbacks=[finetune_early_stopping, finetune_time_callback])
+                                #  class_weight=train_class_weights,
+                                 callbacks=[finetune_early_stopping, finetune_time_callback, finetune_model_checkpoint_callback])
+    model.load_weights(finetune_checkpoint_path)
     if model_save_path:
         model_file_path = os.path.join(model_save_path, "model-finetune.keras")
         model.save(model_file_path)
-    finetune_weights = model.get_weights()
+        export_path = os.path.join(model_save_path, "exported_model_finetune")
+        model.export(export_path, verbose=True)  # Export lightweight TF SavedModel
+        print(f"Model exported for inference to: {export_path}")
 
     finetune_predictions = []
     finetune_y_true = []
@@ -154,12 +175,12 @@ def train_model(train_path, test_path, model_name, data_augmentation, head="avgp
 
     test_finetune_predictions = []
     test_finetune_y_true = []
-    for images, labels in test_ds:
-        preds = model.predict(images)
-        test_finetune_predictions.extend(np.argmax(preds, axis=1))
-        test_finetune_y_true.extend(np.argmax(labels.numpy(), axis=1))
-    test_finetune_y_pred = np.array(test_finetune_predictions)
-    test_finetune_y_true = np.array(test_finetune_y_true)
+    # for images, labels in test_ds:
+    #     preds = model.predict(images)
+    #     test_finetune_predictions.extend(np.argmax(preds, axis=1))
+    #     test_finetune_y_true.extend(np.argmax(labels.numpy(), axis=1))
+    # test_finetune_y_pred = np.array(test_finetune_predictions)
+    # test_finetune_y_true = np.array(test_finetune_y_true)
     return model, class_names, history, train_time_callback.times, (y_true, y_pred), (
-    test_y_true, test_y_pred), finetune_history, finetune_time_callback.times, (finetune_y_true, finetune_y_pred), (
-    test_finetune_y_true, test_finetune_y_pred)
+    None, None), finetune_history, finetune_time_callback.times, (finetune_y_true, finetune_y_pred), (
+    None, None)

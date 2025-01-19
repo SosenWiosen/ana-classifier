@@ -4,7 +4,6 @@ import numpy as np
 
 from model_tester.graph.export_confusion_matrix import export_confusion_matrix
 from model_tester.graph.history_plot import save_plots_separately, save_combined_plot
-from model_tester.model.train_model import train_model
 from model_tester.model.train_model_k_fold import train_model_k_fold
 import os
 from datetime import datetime
@@ -14,11 +13,11 @@ from model_tester.save_training_times import save_training_times
 
 
 def test_model_k_fold(save_path="", dst_path="", model_name="", data_augmentation_factory="", top="avgpool",
-                      top_dropout_rate=0.2,
+                      top_dropout_rate=0.05,
                       max_epochs=20,
-                      optimizer_factory=lambda: "adam", early_stopping_factory=None, metrics=None, finetune=False, finetune_layers=20,
+                      optimizer_factory=lambda: "adam", early_stopping_factory=None, metrics=None, finetune=False, finetune_layers=40,
                       finetune_optimizer_factory=lambda: "adam",
-                      finetune_early_stopping_factory=None, finetune_max_epochs=10, attempt_name=""):
+                      finetune_early_stopping_factory=None, finetune_max_epochs=40, attempt_name=""):
     if attempt_name == "":
         attempt_name = model_name
 
@@ -39,7 +38,7 @@ def test_model_k_fold(save_path="", dst_path="", model_name="", data_augmentatio
     if not os.path.exists(test_results_directory):
         os.makedirs(test_results_directory)
 
-    k = 5
+    k = 4
     # use train_model_k_fold() instead of train_model()
     # get fold_val_accuracies, fold_val_f1_scores, fold_test_accuracies, fold_test_f1_scores, (fold_val_y_trues, fold_val_y_preds), (fold_test_y_trues, fold_test_y_preds), fold_histories, fold_train_times, finetune_fold_val_accuracies, finetune_fold_val_f1_scores, finetune_fold_test_accuracies, finetune_fold_test_f1_scores, (finetune_fold_val_y_trues, finetune_fold_val_y_preds), (finetune_fold_test_y_trues, finetune_fold_test_y_preds), finetune_fold_histories, finetune_fold_train_times
     (
@@ -74,7 +73,7 @@ def test_model_k_fold(save_path="", dst_path="", model_name="", data_augmentatio
         dst_path,
         model_name,  # Model name
         data_augmentation_factory,  # Data augmentation layers
-        k=5,
+        k=k,
         head=top,
         top_dropout_rate=top_dropout_rate,
         optimizer_factory=optimizer_factory,
