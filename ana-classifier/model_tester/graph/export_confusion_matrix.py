@@ -26,5 +26,6 @@ def export_confusion_matrix(y_true, y_pred, class_names, savePath, filename='cfm
     plt.savefig(f'{savePath}/{filename}.eps', format='eps', bbox_inches='tight')
     plt.savefig(f'{savePath}/{filename}.png', format='png', bbox_inches='tight')
     plt.savefig(f'{savePath}/{filename}.svg', format='svg', bbox_inches='tight')
+    plt.close()
 
 

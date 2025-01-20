@@ -17,8 +17,7 @@ def save_plots_separately(history, save_path, filename='history_plots'):
         plt.savefig(f'{save_path}/{filename}_{metric}.eps', format='eps', bbox_inches='tight')
         plt.savefig(f'{save_path}/{filename}_{metric}.svg', format='svg', bbox_inches='tight')
         plt.savefig(f'{save_path}/{filename}_{metric}.png', format='png', bbox_inches='tight')
-
-    plt.close()  # Close the figure to free memory
+        plt.close()  # Close the figure to free memory
 
 def save_combined_plot(history, save_dir, filename='combined_plots'):
     fig, axs = plt.subplots(3, 1, figsize=(10, 20))

@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+import math
 import gc
 from sklearn.metrics import classification_report
 from sklearn.model_selection import KFold
@@ -21,57 +22,104 @@ def train_model_k_fold(dst_path, model_name, data_augmentation_factory, k=4, hea
                        optimizer_factory=lambda: "adam", early_stopping_factory= lambda: [], metrics=None, finetune=False, finetune_layers=20,
                        finetune_optimizer_factory= lambda: "adam",
                        finetune_early_stopping_factory=lambda: [], model_save_path=None, max_epochs=20, finetune_max_epochs=10):
-    test_split_ratio = 0.2
     shape = get_input_shape(model_name)
 
     img_height, img_width = shape[:2]  # Extract the first two elements
-    batch_size = 16
+    batch_size = 32
 
-    def load_full_dataset(path):
-        dataset = tf.keras.utils.image_dataset_from_directory(
-            path,
-            labels="inferred",
-            label_mode="categorical",
-            image_size=(img_height, img_width),
-            shuffle=True,
-            seed=123
-        )
-        return dataset
-
-    dataset = load_full_dataset(dst_path)
-    class_names = dataset.class_names
-    num_classes = len(class_names)
 
     def copy_red_to_green_and_blue(image, label):
         red_channel = image[..., 0:1]  # Extract only the red channel, shape (H, W, 1)
         new_image = tf.concat([red_channel, red_channel, red_channel], axis=-1)
         return new_image, label
+    def load_full_dataset(path):
+        """Load the dataset from a directory using Keras' utility and repeat it for cyclical iterating."""
+        dataset = tf.keras.utils.image_dataset_from_directory(
+            path,
+            labels="inferred",
+            label_mode="categorical",
+            image_size=(img_height, img_width),
+            batch_size=batch_size,
+            shuffle=True,
+            seed=123
+        )
+        return dataset
 
-    dataset = dataset.map(copy_red_to_green_and_blue)
-    # Splitting dataset into train, val, test
-    all_images = []
-    all_labels = []
-    for img, lbl in dataset.unbatch():
-        all_images.append(img.numpy())
-        all_labels.append(lbl.numpy())
+    def prepare_dataset(dataset):
+        """Apply transformations like caching, batching, and prefetching."""
+        dataset = dataset.map(copy_red_to_green_and_blue)  # Apply preprocessing
+        dataset = dataset.cache()  # Cache for better performance
+        # dataset = dataset.prefetch(buffer_size=tf.data.AUTOTUNE)  # Prefetch for overlap
+        return dataset
 
-    all_images = np.array(all_images)
-    all_labels = np.array(all_labels)
+    def split_train_val(train_dataset, train_size=0.8):
+        """Split a train dataset into train and validation datasets (80%-20%)."""
+        # Get size of the dataset
+        dataset_size = sum(1 for _ in train_dataset)
+        train_split_size = int(train_size * dataset_size)
 
-    # def preprocess_dataset(ds):
-    #     ds = ds.map(copy_red_to_green_and_blue)
-    #     # ds = ds.prefetch(buffer_size=AUTOTUNE)
-    #     return ds
+        # Split: Take `train_split_size` for training and the rest for validation
+        train_ds = train_dataset.take(train_split_size)  # Repeat for continuous iteration
+        val_ds = train_dataset.skip(train_split_size)# Repeat for continuous iteration
+        return train_ds, val_ds
+    
+    # Function to perform TensorFlow's dataset partitioning for train/val/test
+    def get_k_fold_splits(dataset, dataset_size, folds=5):
+        """Partition dataset into K folds."""
+        indices = tf.range(dataset_size)
+        indices = tf.random.shuffle(indices, seed=123)
+        fold_size = math.ceil(dataset_size / folds)
+        folds_datasets = []
 
-    # def prepare_dataset(images, labels):
-    #     ds = tf.data.Dataset.from_tensor_slices((images, labels))
-    #     ds = ds.batch(batch_size)  # Batch the dataset
-    #     ds = preprocess_dataset(ds)  # Apply preprocessing (e.g., red channel adjustment)
-    #     return ds
+        for i in range(folds):
+            start = i * fold_size
+            end = start + fold_size
+
+            test_indices = indices[start:end]
+            train_indices = tf.concat([indices[:start], indices[end:]], axis=0)
+
+            train_ds = dataset.enumerate().filter(
+                lambda idx, data: tf.reduce_any(tf.equal(tf.cast(idx, tf.int64), tf.cast(train_indices, tf.int64)))
+            ).map(lambda idx, data: data)  # Convert back to original structure
+
+            test_ds = dataset.enumerate().filter(
+                lambda idx, data: tf.reduce_any(tf.equal(tf.cast(idx, tf.int64), tf.cast(test_indices, tf.int64)))
+            ).map(lambda idx, data: data)  # Convert back to original structure
+
+            folds_datasets.append((train_ds, test_ds))
+
+        return folds_datasets
+    def compute_class_weights(train_ds):
+        """Compute class weights for the given training dataset."""
+        # Aggregate all the labels in the training dataset
+        all_labels = []
+        for _, labels in train_ds.unbatch():
+            # Extract labels (assumed to be one-hot encoded)
+            all_labels.append(tf.argmax(labels).numpy())
+
+        # Convert list of labels to numpy array
+        label_indices = np.array(all_labels)
+
+        # Compute class weights using sklearn's class_weight utility:
+        class_weights_array = class_weight.compute_class_weight(
+            class_weight="balanced",
+            classes=np.unique(label_indices),
+            y=label_indices
+        )
+
+        # Convert to dictionary format required by TensorFlow
+        class_weights = {i: weight for i, weight in enumerate(class_weights_array)}
+
+        return class_weights
+    raw_dataset = load_full_dataset(dst_path)  # Load the dataset
+    class_names = raw_dataset.class_names      # Extract class names
+    dataset = prepare_dataset(raw_dataset)     # Prepare the dataset (cache, map, prefetch, etc.)
+
+    # Get dataset size
+    dataset_size = sum(1 for _ in dataset.unbatch())  # For counting the total number of examples
 
     # Implement K-Fold Cross-Validation
-    kfold = KFold(n_splits=k, shuffle=True, random_state=42)
-    fold_no = 1
+    folds = get_k_fold_splits(dataset, dataset_size, folds=k)
     fold_test_accuracies = []
     fold_test_f1_scores = []
     fold_val_accuracies = []
@@ -94,25 +142,30 @@ def train_model_k_fold(dst_path, model_name, data_augmentation_factory, k=4, hea
     finetune_fold_val_y_trues = []
     finetune_fold_val_y_preds = []
 
-    for train_val_indices, test_indices in kfold.split(all_images):
+    for fold_no, (train_val_ds, test_dataset) in enumerate(folds, start=1):
         print(f"---------------- Fold {fold_no} ----------------")
 
-        # Split into train+val and test
-        train_val_images, test_images = all_images[train_val_indices], all_images[test_indices]
-        train_val_labels, test_labels = all_labels[train_val_indices], all_labels[test_indices]
+        # Create a list of all labels from the dataset
+        all_labels = []
+        for _, labels in dataset.unbatch():  # Unbatch the dataset to get individual labels
+            all_labels.append(tf.argmax(labels).numpy())  # Assuming labels are one-hot encoded
+        num_classes = len(np.unique(all_labels))  # Count unique classes
+        print('Found num of classes.')
+        train_ds, val_ds = split_train_val(train_val_ds)
+        class_weights = compute_class_weights(train_ds)
 
-        # Further split train+val into train and validation (80%-20%)
-        val_split_index = int(0.8 * len(train_val_images))
-        train_images, val_images = train_val_images[:val_split_index], train_val_images[val_split_index:]
-        train_labels, val_labels = train_val_labels[:val_split_index], train_val_labels[val_split_index:]
+        # Apply `.repeat()` after class weights are computed
+        train_ds = train_ds  # Repeat for training
+        val_ds = val_ds      # Repeat ONLY if desired for validation
 
-        # Compute class weights
-        label_indices = np.argmax(train_labels, axis=1)
-        class_weights = class_weight.compute_class_weight(
-            class_weight="balanced",
-            classes=np.unique(label_indices),
-            y=label_indices
-        )
+        train_size = sum(1 for _ in train_ds.unbatch())  # Total training samples
+        val_size = sum(1 for _ in val_ds.unbatch())      # Total validation samples
+
+        steps_per_epoch = train_size // batch_size       # Calculate training steps
+        validation_steps = val_size // batch_size        # Calculate validation steps
+
+
+
 
         if metrics is None:
             metrics = [f1]
@@ -129,6 +182,7 @@ def train_model_k_fold(dst_path, model_name, data_augmentation_factory, k=4, hea
         base_model.trainable = False
         outputs = get_top(base_model.output, num_classes, head, top_dropout_rate)
         model = tf.keras.Model(inputs, outputs, name=model_name)
+        print('before compile')
         model.compile(optimizer=optimizer_factory(), loss="categorical_crossentropy", metrics=["accuracy"] + metrics)
 
         train_time_callback = TimeHistory()
@@ -141,7 +195,9 @@ def train_model_k_fold(dst_path, model_name, data_augmentation_factory, k=4, hea
             mode="max",
         )
 
-        history = model.fit(train_images, train_labels, validation_data=(val_images, val_labels), epochs=max_epochs,
+        history = model.fit(train_ds, validation_data=val_ds, epochs=max_epochs,
+                            steps_per_epoch=steps_per_epoch,  # Ensure finite training steps
+                            validation_steps=validation_steps,  # Ensure finite validation steps
                             # class_weight=train_class_weights,
                             callbacks=[early_stopping_factory(), train_time_callback, model_checkpoint_callback])
         model.load_weights(checkpoint_path)
@@ -149,7 +205,7 @@ def train_model_k_fold(dst_path, model_name, data_augmentation_factory, k=4, hea
         predictions = []
         y_true = []
 
-        for images, labels in tf.data.Dataset.from_tensor_slices((val_images, val_labels)).batch(batch_size):
+        for images, labels in val_ds:
             preds = model.predict(images)
             predictions.extend(np.argmax(preds, axis=1))
             y_true.extend(np.argmax(labels, axis=1))  # Convert one-hot to integer labels
@@ -169,7 +225,7 @@ def train_model_k_fold(dst_path, model_name, data_augmentation_factory, k=4, hea
         test_predictions = []
         test_y_true = []
 
-        for images, labels in tf.data.Dataset.from_tensor_slices((test_images, test_labels)).batch(batch_size):
+        for images, labels in test_dataset:
             preds = model.predict(images)
             test_predictions.extend(np.argmax(preds, axis=1))
             test_y_true.extend(np.argmax(labels, axis=1))  # Convert one-hot to integer labels
@@ -220,9 +276,11 @@ def train_model_k_fold(dst_path, model_name, data_augmentation_factory, k=4, hea
             mode="max",
         )
 
-        finetune_history = model.fit(train_images, train_labels, validation_data=(val_images, val_labels),
+        finetune_history = model.fit(train_ds, validation_data=val_ds,
                                      epochs=finetune_max_epochs,
-                                     class_weight=train_class_weights,
+                                     steps_per_epoch=steps_per_epoch,  # Ensure finite training steps
+                                     validation_steps=validation_steps,  # Ensure finite validation steps
+                                    #  class_weight=train_class_weights,
                                      callbacks=[finetune_early_stopping_factory(), finetune_time_callback, finetune_model_checkpoint_callback])
         model.load_weights(finetune_checkpoint_path)
         if model_save_path:
@@ -234,7 +292,7 @@ def train_model_k_fold(dst_path, model_name, data_augmentation_factory, k=4, hea
         finetune_predictions = []
         finetune_y_true = []
 
-        for images, labels in tf.data.Dataset.from_tensor_slices((val_images, val_labels)).batch(batch_size):
+        for images, labels in val_ds:
             preds = model.predict(images)
             finetune_predictions.extend(np.argmax(preds, axis=1))
             finetune_y_true.extend(np.argmax(labels, axis=1))  # Convert one-hot to integer labels
@@ -244,7 +302,7 @@ def train_model_k_fold(dst_path, model_name, data_augmentation_factory, k=4, hea
 
         test_finetune_predictions = []
         test_finetune_y_true = []
-        for images, labels in tf.data.Dataset.from_tensor_slices((test_images, test_labels)).batch(batch_size):
+        for images, labels in test_dataset:
             preds = model.predict(images)
             test_finetune_predictions.extend(np.argmax(preds, axis=1))
             test_finetune_y_true.extend(np.argmax(labels, axis=1))  # Convert one-hot to integer labels
