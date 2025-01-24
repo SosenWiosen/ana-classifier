@@ -10,9 +10,7 @@ import json
 import datetime
 from functools import wraps
 import numpy as np
-from keras.models import load_model
-from keras.preprocessing import image
-
+import tensorflow as tf
 import base64  # For handling base64 encoding
 from PIL import Image  # For image manipulation
 from io import BytesIO  # For handling image as a byte buffer
@@ -46,33 +44,77 @@ models = {}  # This will store model instances
 
 def load_models():
     models_folder = app.config['MODELS_FOLDER']
-    print("Loading models, base directory:", models_folder)
+    print("Loading TensorFlow exported models, base directory:", models_folder)
     for model_dir in os.listdir(models_folder):
         print("Found directory:", model_dir)
-        config_path = os.path.join(models_folder, model_dir, 'model_config.json')
-        if os.path.isfile(config_path):
-            print("Found model config:", config_path)
-            with open(config_path, 'r') as f:
-                config = json.load(f)
-                model_file_path = os.path.join(models_folder, model_dir, config['model_path'])
-                model_name = config['name']
-                models[model_name] = {
-                    'model_path': model_file_path,
-                    'config': config,
-                    'loaded_model': None
-                }
-                print(f"Model config for {model_name} loaded from {model_file_path}")
-        else:
-            print("No config found in", model_dir)
-    print("Models loaded:", models.keys())
+        saved_model_dir = os.path.join(models_folder, model_dir)  # Path to the SavedModel directory
+        model_config_path = os.path.join(models_folder, model_dir, 'model_config.json')
 
-def get_model(model_name):
-    model_info = models.get(model_name)
-    if model_info and model_info['loaded_model'] is None:
-        # Load and cache the model
-        model_info['loaded_model'] = load_model(model_info['model_path'],safe_mode=False)
-        print(f"Loaded model {model_name} from {model_info['model_path']}")
-    return model_info['loaded_model'] if model_info else None
+        if os.path.isdir(saved_model_dir) and os.path.isfile(model_config_path):
+            print("Found model directory with config:", saved_model_dir)
+
+            # Load the model configuration
+            with open(model_config_path, 'r') as f:
+                config = json.load(f)
+
+            model_name = config['name']  # Retrieve the model's name
+            model_path = config['model_path']  # Retrieve the model's path
+            try:
+                # Join the model path with the SavedModel directory
+                model_file = os.path.join(saved_model_dir, model_path)
+                # Load the TensorFlow SavedModel
+                loaded_model = tf.saved_model.load(model_file)
+                print(f"Successfully loaded TensorFlow model: {model_name} from {saved_model_dir}")
+
+                # Store the loaded model along with its config into the models dictionary
+                models[model_name] = {
+                    'model_path': model_file,  # Store the directory of the SavedModel
+                    'config': config,
+                    'loaded_model': loaded_model
+                }
+            except Exception as e:
+                print(f"Failed to load model {model_name} from {model_file}. Error: {e}")
+        else:
+            print(f"No valid config or SavedModel found in directory: {model_dir}")
+
+    print("Models loaded:", list(models.keys()))
+
+def decode_and_preprocess_image(image_data, model_config):
+    """
+    Preprocess image data to match the training preprocessing pipeline.
+
+    Args:
+        image_data (str): The base64-encoded string of the image.
+        model_config (dict): A dictionary containing model attributes, such as `input_shape`
+
+    Returns:
+        tf.Tensor: A preprocessed image tensor, ready for inference.
+    """
+    # Decode base64 image data and load it as a PIL image
+    image = Image.open(BytesIO(base64.b64decode(image_data)))
+    image = image.convert("RGB")  # Ensure 3 channels (RGB)
+
+    # Resize image to match model input size
+    target_size = (model_config["input_shape"][0], model_config["input_shape"][1])
+    image = image.resize(target_size)
+
+    # Convert to TensorFlow tensor and normalize to [0, 1]
+    image_tensor = tf.convert_to_tensor(image, dtype=tf.float32)  # TensorFlow tensor
+    # Add batch dimension (TensorFlow expects a batch of inputs for inference)
+    image_tensor = tf.expand_dims(image_tensor, axis=0)  # Shape: (1, height, width, 3)
+    if model_config["copy_red_channel"]:
+        red_channel = image_tensor[..., 0:1]  # Extract only the red channel, shape (H, W, 1)
+        image_tensor = tf.concat([red_channel, red_channel, red_channel], axis=-1)
+    return image_tensor
+
+
+# def get_model(model_name):
+#     model_info = models.get(model_name)
+#     if model_info and model_info['loaded_model'] is None:
+#         # Load and cache the model
+#         model_info['loaded_model'] =
+#         print(f"Loaded model {model_name} from {model_info['model_path']}")
+#     return model_info['loaded_model'] if model_info else None
 
 load_models()
 
@@ -116,6 +158,7 @@ def login_user():
 def list_models():
     if models:
         available_models = list(models.keys())
+        print("Available models:", available_models)
         return jsonify({'available_models': available_models}), 200
     else:
         return jsonify({'message': 'No models available'}), 204
@@ -132,13 +175,13 @@ def predict_image(current_user):
     if model_name not in models:
         return jsonify({'message': 'Model not available'}), 404
 
-    model = get_model(model_name)  # Load model if not already loaded
+    model = models[model_name]  # Load model if not already loaded
     if not model:
         return jsonify({'message': 'Error loading model'}), 500
 
     # Assuming decode_and_process_image handles model-specific preprocessing
-    image = decode_and_process_image(image_data, models[model_name]['config'])
-    prediction = model.predict(image)
+    image = decode_and_preprocess_image(image_data, models[model_name]['config'])
+    prediction = model.serve(image)
     predicted_class = np.argmax(prediction, axis=-1)[0]
     return jsonify({'prediction': str(predicted_class)})
 
