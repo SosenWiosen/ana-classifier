@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask import Response
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -59,6 +60,8 @@ def load_models():
 
             model_name = config['name']  # Retrieve the model's name
             model_path = config['model_path']  # Retrieve the model's path
+            labels = config['labels']  # Retrieve the model's labels
+            copy_red_channel = config.get('copy_red_channel', False)  # Optional: Copy red channel to all channels
             try:
                 # Join the model path with the SavedModel directory
                 model_file = os.path.join(saved_model_dir, model_path)
@@ -70,7 +73,9 @@ def load_models():
                 models[model_name] = {
                     'model_path': model_file,  # Store the directory of the SavedModel
                     'config': config,
-                    'loaded_model': loaded_model
+                    'loaded_model': loaded_model,
+                    'labels': labels,
+                    'copy_red_channel': copy_red_channel
                 }
             except Exception as e:
                 print(f"Failed to load model {model_name} from {model_file}. Error: {e}")
@@ -133,6 +138,11 @@ def token_required(f):
         return f(current_user, *args, **kwargs)
     return decorated
 
+# @app.before_request
+# def basic_authentication():
+#     print("before request")
+#     if request.method.lower() == 'options':
+#         return Response()
 # Routes
 @app.route('/register', methods=['POST'])
 def register_user():
@@ -168,22 +178,53 @@ def predict_image(current_user):
     data = request.json
     if 'image' not in data or 'model_name' not in data:
         return jsonify({'message': 'Missing image or model name'}), 400
+
     image_data = data['image']
+    image_filename = data['image_filename']
     model_name = data['model_name']
+
     if not image_data:
         return jsonify({'message': 'Empty image data'}), 400
+
+    # Ensure the specified model_name exists
     if model_name not in models:
         return jsonify({'message': 'Model not available'}), 404
 
-    model = models[model_name]  # Load model if not already loaded
-    if not model:
+    # Get model details
+    model_info = models[model_name]
+    if not model_info:
         return jsonify({'message': 'Error loading model'}), 500
 
-    # Assuming decode_and_process_image handles model-specific preprocessing
-    image = decode_and_preprocess_image(image_data, models[model_name]['config'])
-    prediction = model.serve(image)
-    predicted_class = np.argmax(prediction, axis=-1)[0]
-    return jsonify({'prediction': str(predicted_class)})
+    # Ensure the actual TensorFlow model has been loaded
+    loaded_model = model_info['loaded_model']
+    if not loaded_model:
+        return jsonify({'message': 'Model is not loaded'}), 500
+
+    config = model_info['config']
+    # try:
+        # Preprocess the image
+    image = decode_and_preprocess_image(image_data, model_info['config'])
+
+        # Perform inference
+    prediction = loaded_model.serve(image)
+    labels = model_info['labels']
+    label_probabilities = [{"label": label, "probability": float(prob)} for label, prob in zip(labels, prediction[0])]
+    json_predictions = json.dumps(label_probabilities)
+
+        # Log results (optional)
+    new_log = RequestLog(
+         user_id=current_user.id,
+          image_name=image_filename,  # You can replace this with the actual image name
+          prediction_result=json_predictions,
+      )
+    db.session.add(new_log)
+    db.session.commit()
+    print(jsonify(json_predictions))
+    return jsonify({"predictions":json_predictions})
+
+    # except Exception as e:
+    #     print(f"Error during prediction: {e}")
+    #     return jsonify({'message': 'Error occurred during prediction'}), 500
 
 @app.route('/history', methods=['GET'])
 @token_required
@@ -209,4 +250,4 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
 
-    app.run(debug=True)
+    app.run(debug=True, port=5001)

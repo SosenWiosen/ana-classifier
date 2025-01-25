@@ -7,6 +7,7 @@ import {
   Alert,
   Dimensions,
   Platform,
+  ScrollView,
 } from "react-native";
 import { View, Text } from "@/components/Themed";
 import * as ImagePicker from "expo-image-picker";
@@ -14,6 +15,10 @@ import axios from "axios";
 import { useSession } from "@/app/ctx";
 import { API } from "@/constants/API";
 import ModelPicker from "@/components/ModelPicker";
+import {
+  PredictionItem,
+  PredictionResults,
+} from "@/components/PredictionResults";
 
 type HistoryItem = {
   image_name: string;
@@ -38,7 +43,7 @@ export default function HomeScreen() {
     useState<ImagePicker.ImagePickerAsset | null>(null);
   const [selectedModel, setSelectedModel] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
-  const [prediction, setPrediction] = useState<string | null>(null);
+  const [prediction, setPrediction] = useState<PredictionItem[] | null>(null);
 
   // Fetch available models from the backend
   const fetchModels = async () => {
@@ -118,6 +123,7 @@ export default function HomeScreen() {
       const base64Data = base64.replace(/^data:image\/\w+;base64,/, "");
       const payload = {
         image: base64Data,
+        image_filename: selectedImage.fileName,
         model_name: selectedModel,
       };
       const response = await axios.post(API.URL + "/predict", payload, {
@@ -126,9 +132,11 @@ export default function HomeScreen() {
           "Content-Type": "application/json",
         },
       });
-      setPrediction(response.data.prediction);
+      console.log("Prediction Response:", response.data);
+      setPrediction(JSON.parse(response.data.predictions));
       fetchHistory();
     } catch (error: any) {
+      console.error("Error uploading image:", error.message);
       Alert.alert(
         "Error",
         error.response?.data?.message || "Error uploading image."
@@ -139,86 +147,94 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Section: Title */}
-      <Text style={styles.title}>Predict the ANA Pattern of your image</Text>
-      <Text style={styles.instructions}>
-        1. Select the model from the dropdown.
-      </Text>
-      <Text style={styles.instructions}>
-        2. Pick the image by pressing the button.
-      </Text>
-      <Text style={styles.instructions}>
-        3. Upload the image to the server.
-      </Text>
-      <Text style={styles.instructions}>
-        4. Wait for the results which will be displayed below in the History
-        field.
-      </Text>
+    <ScrollView contentContainerStyle={styles.scrollContainer}>
+      <View style={styles.container}>
+        {/* Section: Title */}
+        <Text style={styles.title}>Predict the ANA Pattern of your image</Text>
+        <Text style={styles.instructions}>
+          1. Select the model from the dropdown.
+        </Text>
+        <Text style={styles.instructions}>
+          2. Pick the image by pressing the button.
+        </Text>
+        <Text style={styles.instructions}>
+          3. Upload the image to the server.
+        </Text>
+        <Text style={styles.instructions}>
+          4. Wait for the results which will be displayed below in the History
+          field.
+        </Text>
 
-      {/* Section: Image Picker & Upload */}
-      <View style={styles.buttonsContainer}>
-        <Button title="Pick an Image" onPress={pickImage} />
-        <View style={styles.imagePlaceholder}>
-          {selectedImage ? (
-            <Image
-              source={{ uri: selectedImage.uri }}
-              style={styles.selectedImage}
+        {/* Section: Image Picker & Upload */}
+        <View style={styles.buttonsContainer}>
+          <Button title="Pick an Image" onPress={pickImage} />
+          <View style={styles.imagePlaceholder}>
+            {selectedImage ? (
+              <Image
+                source={{ uri: selectedImage.uri }}
+                style={styles.selectedImage}
+              />
+            ) : (
+              <Text style={styles.placeholderText}>No Image Selected</Text>
+            )}
+          </View>
+
+          {/* Model Selector */}
+          <ModelPicker
+            models={models}
+            selectedModel={selectedModel}
+            onSelectModel={(model) => setSelectedModel(model)}
+          />
+          <View style={styles.uploadButton}>
+            <Button
+              title={isUploading ? "Uploading..." : "Upload & Predict"}
+              onPress={uploadImage}
+              disabled={isUploading}
             />
-          ) : (
-            <Text style={styles.placeholderText}>No Image Selected</Text>
-          )}
+          </View>
         </View>
 
-        {/* Model Selector */}
-        <ModelPicker
-          models={models}
-          selectedModel={selectedModel}
-          onSelectModel={(model) => setSelectedModel(model)}
-        />
-        <View style={styles.uploadButton}>
-          <Button
-            title={isUploading ? "Uploading..." : "Upload & Predict"}
-            onPress={uploadImage}
-            disabled={isUploading}
+        {/* Horizontal Divider */}
+        <View style={styles.divider} />
+        {/* Section: Show Prediction Result */}
+        {prediction && <PredictionResults predictions={prediction} />}
+
+        {/* Section: Prediction History */}
+        <View
+          style={{
+            width: isWebDesktop ? "80%" : "100%",
+            alignSelf: "center",
+          }}
+        >
+          <Text style={styles.historyTitle}>History</Text>
+          <FlatList
+            contentContainerStyle={styles.historyList}
+            data={history}
+            keyExtractor={(item, index) => index.toString()}
+            renderItem={({ item }) => (
+              <View style={styles.historyItem}>
+                <Text style={styles.historyText}>Image: {item.image_name}</Text>
+                <Text style={styles.historyText}>
+                  Prediction: {item.prediction_result}
+                </Text>
+                <Text style={styles.historyTimestamp}>
+                  Date: {new Date(item.timestamp).toLocaleString()}
+                </Text>
+              </View>
+            )}
           />
         </View>
       </View>
-
-      {/* Horizontal Divider */}
-      <View style={styles.divider} />
-
-      {/* Section: Show Prediction Result */}
-      {prediction && (
-        <Text style={styles.prediction}>Prediction: {prediction}</Text>
-      )}
-
-      {/* Section: Prediction History */}
-      <Text style={styles.historyTitle}>History</Text>
-      <FlatList
-        contentContainerStyle={styles.historyList}
-        data={history}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.historyItem}>
-            <Text style={styles.historyText}>Image: {item.image_name}</Text>
-            <Text style={styles.historyText}>
-              Prediction: {item.prediction_result}
-            </Text>
-            <Text style={styles.historyTimestamp}>
-              Date: {new Date(item.timestamp).toLocaleString()}
-            </Text>
-          </View>
-        )}
-      />
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+  scrollContainer: {
+    flexGrow: 1, // Ensures the content is scrollable even if it doesn't fill the screen
+  },
   container: {
     flex: 1,
-    padding: 20,
   },
   title: {
     fontSize: 20,
