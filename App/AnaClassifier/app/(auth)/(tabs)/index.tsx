@@ -8,6 +8,7 @@ import {
   Dimensions,
   Platform,
   ScrollView,
+  ActivityIndicator, // Import ActivityIndicator
 } from "react-native";
 import { View, Text } from "@/components/Themed";
 import * as ImagePicker from "expo-image-picker";
@@ -26,18 +27,18 @@ type HistoryItem = {
   timestamp: string;
   prediction_result: string;
 };
+
 type ModelItem = {
   name: string;
 };
 
 // Get the width of the current window
 const DEVICE_WIDTH = Dimensions.get("window").width;
-
 // Conditionally calculate the width for desktop or browser environments
 const isWebDesktop = Platform.OS === "web" && DEVICE_WIDTH > 768; // Adjust the threshold as needed
 
 export default function HomeScreen() {
-  const { session } = useSession();
+  const { session } = useSession(); // Get token from context
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [models, setModels] = useState<ModelItem[]>([]);
   const [selectedImage, setSelectedImage] =
@@ -45,6 +46,8 @@ export default function HomeScreen() {
   const [selectedModel, setSelectedModel] = useState<string>("");
   const [isUploading, setIsUploading] = useState(false);
   const [prediction, setPrediction] = useState<PredictionItem[] | null>(null);
+  const [fetchingPrediction, setFetchingPrediction] = useState(false); // NEW: State for fetching
+  const [errorMessage, setErrorMessage] = useState<string | null>(null); // NEW: State for error message
 
   // Fetch available models from the backend
   const fetchModels = async () => {
@@ -93,6 +96,8 @@ export default function HomeScreen() {
     });
     if (!result.canceled) {
       setSelectedImage(result.assets[0]); // Store the selected image
+      setPrediction(null); // Reset previous predictions
+      setErrorMessage(null); // Clear error message
     }
   };
 
@@ -106,7 +111,9 @@ export default function HomeScreen() {
       Alert.alert("Error", "Please select a model first.");
       return;
     }
-    setIsUploading(true);
+    setIsUploading(true); // Block the upload button
+    setFetchingPrediction(true); // Start fetching state
+    setErrorMessage(null); // Clear any previous error message
     const convertToBase64 = async () => {
       const response = await fetch(selectedImage.uri);
       const blob = await response.blob();
@@ -134,23 +141,24 @@ export default function HomeScreen() {
         },
       });
       console.log("Prediction Response:", response.data);
-      setPrediction(JSON.parse(response.data).prediction);
+      setPrediction(JSON.parse(response.data).prediction); // Show predictions
       fetchHistory();
     } catch (error: any) {
       console.error("Error uploading image:", error.message);
-      Alert.alert(
-        "Error",
-        error.response?.data?.message || "Error uploading image."
+      setErrorMessage(
+        // Display error message
+        error.response?.data?.message || "Failed to make a prediction."
       );
     } finally {
-      setIsUploading(false);
+      setIsUploading(false); // Enable buttons again
+      setFetchingPrediction(false); // Stop fetching state
     }
   };
 
   return (
     <ScrollView contentContainerStyle={styles.scrollContainer}>
       <View style={styles.container}>
-        {/* Section: Title */}
+        {/* Title */}
         <Text style={styles.title}>Predict the ANA Pattern of your image</Text>
         <Text style={styles.instructions}>
           1. Select the model from the dropdown.
@@ -166,7 +174,7 @@ export default function HomeScreen() {
           field.
         </Text>
 
-        {/* Section: Image Picker & Upload */}
+        {/* Image Picker and Upload */}
         <View style={styles.buttonsContainer}>
           <Button title="Pick an Image" onPress={pickImage} />
           <View style={styles.imagePlaceholder}>
@@ -179,8 +187,6 @@ export default function HomeScreen() {
               <Text style={styles.placeholderText}>No Image Selected</Text>
             )}
           </View>
-
-          {/* Model Selector */}
           <ModelPicker
             models={models}
             selectedModel={selectedModel}
@@ -197,10 +203,23 @@ export default function HomeScreen() {
 
         {/* Horizontal Divider */}
         <View style={styles.divider} />
-        {/* Section: Show Prediction Result */}
+
+        {/* Loading Indicator */}
+        {fetchingPrediction && (
+          <ActivityIndicator
+            size="large"
+            color="#0000ff"
+            style={styles.loader}
+          />
+        )}
+
+        {/* Error Message */}
+        {errorMessage && <Text style={styles.errorText}>{errorMessage}</Text>}
+
+        {/* Show Predictions */}
         {prediction && <PredictionResults predictions={prediction} />}
 
-        {/* Section: Prediction History */}
+        {/* Prediction History */}
         <View
           style={{
             width: isWebDesktop ? "80%" : "100%",
@@ -216,7 +235,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   scrollContainer: {
-    flexGrow: 1, // Ensures the content is scrollable even if it doesn't fill the screen
+    flexGrow: 1,
   },
   container: {
     flex: 1,
@@ -238,32 +257,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   uploadButton: {
-    marginTop: 10, // Add spacing between the buttons
+    marginTop: 10,
   },
   imagePlaceholder: {
-    width: isWebDesktop ? "50%" : "100%", // Conditionally provide width for desktop vs mobile
-    height: 300, // Fixed height for the image placeholder
-    backgroundColor: "#f0f0f0", // Light gray background for the placeholder
-    justifyContent: "center", // Center content vertically
-    alignItems: "center", // Center content horizontally
-    marginVertical: 20, // Provide spacing above and below
+    width: isWebDesktop ? "50%" : "100%",
+    height: 300,
+    backgroundColor: "#f0f0f0",
+    justifyContent: "center",
+    alignItems: "center",
+    marginVertical: 20,
     borderWidth: 1,
-    borderColor: "#ccc", // Placeholder border color
-    borderRadius: 5, // Optional: Make corners rounded
-    alignSelf: "center", // Ensure it is centered horizontally
+    borderColor: "#ccc",
+    borderRadius: 5,
+    alignSelf: "center",
   },
   selectedImage: {
-    flex: 1, // Ensures the image fills the available space
-    width: "100%", // Takes the full width of the placeholder
-    resizeMode: "contain", // Fits the image into the frame without cropping
+    flex: 1,
+    width: "100%",
+    resizeMode: "contain",
   },
   placeholderText: {
     fontSize: 16,
-    color: "#aaa", // Light gray text color to match the placeholder style
-  },
-  picker: {
-    height: 50,
-    width: "100%",
+    color: "#aaa",
   },
   prediction: {
     fontSize: 18,
@@ -274,8 +289,16 @@ const styles = StyleSheet.create({
   },
   divider: {
     borderBottomWidth: 1,
-    borderColor: "#cccccc", // Light gray line
-    marginVertical: 20, // Spacing above and below the divider
+    borderColor: "#cccccc",
+    marginVertical: 20,
     width: "100%",
+  },
+  loader: {
+    marginVertical: 10, // Space around the loader
+  },
+  errorText: {
+    color: "red",
+    textAlign: "center",
+    marginVertical: 10, // Space around the error text
   },
 });

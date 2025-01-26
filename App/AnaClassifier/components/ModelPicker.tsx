@@ -15,18 +15,25 @@ const ModelPicker: React.FC<ModelPickerProps> = ({
   selectedModel,
   onSelectModel,
 }) => {
+  const hasModels = models.length > 0; // Check if models are loaded
+
   return (
     <View>
-      <Text> Choose the model you want to use for the prediction: </Text>
-      <Picker
-        selectedValue={selectedModel}
-        onValueChange={onSelectModel}
-        style={styles.picker}
-      >
-        {models.map((model, index) => (
-          <Picker.Item key={index} label={model.name} value={model.name} />
-        ))}
-      </Picker>
+      <Text>Choose the model you want to use for the prediction:</Text>
+      {!hasModels ? ( // If no models are available, display a message
+        <Text style={styles.noModelsMessage}>No models available</Text>
+      ) : (
+        <Picker
+          selectedValue={selectedModel}
+          onValueChange={onSelectModel}
+          style={styles.picker}
+          enabled={hasModels} // Disable the Picker if no models are available
+        >
+          {models.map((model, index) => (
+            <Picker.Item key={index} label={model.name} value={model.name} />
+          ))}
+        </Picker>
+      )}
     </View>
   );
 };
@@ -35,6 +42,12 @@ const styles = StyleSheet.create({
   picker: {
     height: 50,
     width: "100%",
+  },
+  noModelsMessage: {
+    marginTop: 10,
+    fontSize: 16,
+    fontStyle: "italic",
+    color: "red", // Highlight the message with a distinct color
   },
 });
 
