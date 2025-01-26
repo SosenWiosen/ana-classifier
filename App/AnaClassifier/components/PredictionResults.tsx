@@ -46,6 +46,8 @@ const styles = StyleSheet.create({
   predictionContainer: {
     marginVertical: 20,
     padding: 10,
+    width: "80%",
+    alignSelf: "center",
     borderColor: "#ddd",
     borderWidth: 1,
     borderRadius: 5,

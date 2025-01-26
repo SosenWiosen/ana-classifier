@@ -19,6 +19,7 @@ import {
   PredictionItem,
   PredictionResults,
 } from "@/components/PredictionResults";
+import HistoryList from "@/components/HistoryList";
 
 type HistoryItem = {
   image_name: string;
@@ -133,7 +134,7 @@ export default function HomeScreen() {
         },
       });
       console.log("Prediction Response:", response.data);
-      setPrediction(JSON.parse(response.data.predictions));
+      setPrediction(JSON.parse(response.data).prediction);
       fetchHistory();
     } catch (error: any) {
       console.error("Error uploading image:", error.message);
@@ -206,23 +207,7 @@ export default function HomeScreen() {
             alignSelf: "center",
           }}
         >
-          <Text style={styles.historyTitle}>History</Text>
-          <FlatList
-            contentContainerStyle={styles.historyList}
-            data={history}
-            keyExtractor={(item, index) => index.toString()}
-            renderItem={({ item }) => (
-              <View style={styles.historyItem}>
-                <Text style={styles.historyText}>Image: {item.image_name}</Text>
-                <Text style={styles.historyText}>
-                  Prediction: {item.prediction_result}
-                </Text>
-                <Text style={styles.historyTimestamp}>
-                  Date: {new Date(item.timestamp).toLocaleString()}
-                </Text>
-              </View>
-            )}
-          />
+          <HistoryList history={history} />
         </View>
       </View>
     </ScrollView>
@@ -292,26 +277,5 @@ const styles = StyleSheet.create({
     borderColor: "#cccccc", // Light gray line
     marginVertical: 20, // Spacing above and below the divider
     width: "100%",
-  },
-  historyTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginTop: 30,
-    marginBottom: 10,
-  },
-  historyList: {
-    paddingBottom: 50, // Add some space at the bottom of the list
-  },
-  historyItem: {
-    borderBottomWidth: 1,
-    borderColor: "#ccc",
-    paddingVertical: 10,
-  },
-  historyText: {
-    fontSize: 16,
-  },
-  historyTimestamp: {
-    fontSize: 12,
-    color: "gray",
   },
 });

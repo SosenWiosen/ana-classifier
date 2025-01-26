@@ -23,21 +23,34 @@ export function useSession() {
   return value;
 }
 
-export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
+export const SessionProvider: React.FC<React.PropsWithChildren> = ({
+  children,
+}) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [token, setToken] = useStorageState('token');
-  const [username, setUsername] = useStorageState('username');
+  const [token, setToken] = useStorageState("token");
+  const [username, setUsername] = useStorageState("username");
 
+  // Sign In
   const signIn = async (username: string, password: string) => {
     setIsLoading(true);
     try {
-      const response = await axios.post(`${API.URL}/login`, { username, password });
-      const { token } = response.data;
+      const response = await axios.post(`${API.URL}/login`, {
+        username,
+        password,
+      });
+
+      const { token, exp } = response.data; // Save token and expiry date if available
       setToken(token);
       setUsername(username);
+      if (exp) {
+        await setStorageItemAsync("token_exp", exp); // Store `exp` for later use
+      }
     } catch (error) {
       if (axios.isAxiosError(error)) {
-        console.error("Sign-in error:", error.response?.data?.message || error.message);
+        console.error(
+          "Sign-in error:",
+          error.response?.data?.message || error.message
+        );
         throw error;
       } else {
         console.error("Sign-in error:", (error as Error).message);
@@ -48,19 +61,38 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
     }
   };
 
+  // Sign Out
   const signOut = async () => {
-    await setStorageItemAsync('token', null);
-    await setStorageItemAsync('username', null);
+    await setStorageItemAsync("token", null);
+    await setStorageItemAsync("username", null);
+    await setStorageItemAsync("token_exp", null); // Clear the token expiry
     setUsername(null);
     setToken(null);
   };
 
-  // Check if a session exists on mount
+  // Monitor Token Expiry
   useEffect(() => {
-    if (token[1] && username[1]) {
-      // You may want to validate or refresh the token here if necessary
-    }
-  }, [token[1], username[1]]);
+    const checkTokenExpiry = async () => {
+      const expTimestamp = await localStorage.getItem("token_exp");
+      if (!expTimestamp) return;
+
+      const expiryDate = new Date(parseInt(expTimestamp, 10) * 1000); // Convert `exp` to a Date object
+      const now = new Date();
+
+      if (expiryDate <= now) {
+        console.warn("Your session has expired. Signing out...");
+        signOut();
+      } else {
+        const timeout = expiryDate.getTime() - now.getTime();
+        setTimeout(() => {
+          console.warn("Your session has expired. Signing out...");
+          signOut();
+        }, timeout);
+      }
+    };
+
+    checkTokenExpiry();
+  }, [token[1]]);
 
   return (
     <AuthContext.Provider
@@ -68,7 +100,7 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({ children })
         signIn,
         signOut,
         session: { token: token[1], username: username[1] },
-        isLoading
+        isLoading,
       }}
     >
       {children}

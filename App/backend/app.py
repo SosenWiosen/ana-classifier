@@ -24,14 +24,15 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
 app.config['UPLOAD_FOLDER'] = './uploads'
 app.config['MODELS_FOLDER'] = "./models/"
 
-
 db = SQLAlchemy(app)
+
 
 # Database Models
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(80), nullable=False)
+
 
 class RequestLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -42,6 +43,7 @@ class RequestLog(db.Model):
 
 
 models = {}  # This will store model instances
+
 
 def load_models():
     models_folder = app.config['MODELS_FOLDER']
@@ -84,6 +86,7 @@ def load_models():
 
     print("Models loaded:", list(models.keys()))
 
+
 def decode_and_preprocess_image(image_data, model_config):
     """
     Preprocess image data to match the training preprocessing pipeline.
@@ -123,6 +126,7 @@ def decode_and_preprocess_image(image_data, model_config):
 
 load_models()
 
+
 # Decorator for authorization
 def token_required(f):
     @wraps(f)
@@ -136,7 +140,9 @@ def token_required(f):
         except:
             return jsonify({'message': 'Token is invalid!'}), 401
         return f(current_user, *args, **kwargs)
+
     return decorated
+
 
 # @app.before_request
 # def basic_authentication():
@@ -153,16 +159,18 @@ def register_user():
     db.session.commit()
     return jsonify({'message': 'User registered successfully.'})
 
+
 @app.route('/login', methods=['POST'])
 def login_user():
     data = request.json
     user = User.query.filter_by(username=data['username']).first()
     if user and check_password_hash(user.password, data['password']):
         token = jwt.encode({'id': user.id,
-                            'exp': datetime.datetime.utcnow() + datetime.timedelta(hours=24)},
-                            app.config['SECRET_KEY'], algorithm="HS256")
+                            'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7)},
+                           app.config['SECRET_KEY'], algorithm="HS256")
         return jsonify({'token': token})
     return jsonify({'message': 'Invalid username or password.'}), 401
+
 
 @app.route('/models', methods=['GET'])
 def list_models():
@@ -172,6 +180,8 @@ def list_models():
         return jsonify({'available_models': available_models}), 200
     else:
         return jsonify({'message': 'No models available'}), 204
+
+
 @app.route('/predict', methods=['POST'])
 @token_required
 def predict_image(current_user):
@@ -202,29 +212,31 @@ def predict_image(current_user):
 
     config = model_info['config']
     # try:
-        # Preprocess the image
+    # Preprocess the image
     image = decode_and_preprocess_image(image_data, model_info['config'])
 
-        # Perform inference
+    # Perform inference
     prediction = loaded_model.serve(image)
     labels = model_info['labels']
-    label_probabilities = [{"label": label, "probability": float(prob)} for label, prob in zip(labels, prediction[0])]
+    label_probabilities = {
+        "prediction": [{"label": label, "probability": float(prob)} for label, prob in zip(labels, prediction[0])]}
     json_predictions = json.dumps(label_probabilities)
 
-        # Log results (optional)
+    # Log results (optional)
     new_log = RequestLog(
-         user_id=current_user.id,
-          image_name=image_filename,  # You can replace this with the actual image name
-          prediction_result=json_predictions,
-      )
+        user_id=current_user.id,
+        image_name=image_filename,  # You can replace this with the actual image name
+        prediction_result=json_predictions,
+    )
     db.session.add(new_log)
     db.session.commit()
     print(jsonify(json_predictions))
-    return jsonify({"predictions":json_predictions})
+    return jsonify(json_predictions)
 
     # except Exception as e:
     #     print(f"Error during prediction: {e}")
     #     return jsonify({'message': 'Error occurred during prediction'}), 500
+
 
 @app.route('/history', methods=['GET'])
 @token_required
@@ -239,6 +251,7 @@ def get_history(current_user):
         }
         output.append(log_data)
     return jsonify({'history': output})
+
 
 # Main block
 if __name__ == '__main__':
