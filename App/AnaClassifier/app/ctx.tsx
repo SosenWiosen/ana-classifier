@@ -1,6 +1,5 @@
 import React, { useState, useContext, useEffect } from "react";
 import axios from "axios";
-import { API } from "@/constants/API";
 import { useStorageState, setStorageItemAsync } from "./useStorageState";
 
 const AuthContext = React.createContext<{
@@ -34,10 +33,13 @@ export const SessionProvider: React.FC<React.PropsWithChildren> = ({
   const signIn = async (username: string, password: string) => {
     setIsLoading(true);
     try {
-      const response = await axios.post(`${API.URL}/login`, {
-        username,
-        password,
-      });
+      const response = await axios.post(
+        `${process.env.EXPO_PUBLIC_API_URL}/login`,
+        {
+          username,
+          password,
+        }
+      );
 
       const { token, exp } = response.data; // Save token and expiry date if available
       setToken(token);

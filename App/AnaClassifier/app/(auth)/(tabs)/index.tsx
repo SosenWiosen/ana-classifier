@@ -14,7 +14,6 @@ import { View, Text } from "@/components/Themed";
 import * as ImagePicker from "expo-image-picker";
 import axios from "axios";
 import { useSession } from "@/app/ctx";
-import { API } from "@/constants/API";
 import ModelPicker from "@/components/ModelPicker";
 import {
   PredictionItem,
@@ -36,6 +35,7 @@ type ModelItem = {
 const DEVICE_WIDTH = Dimensions.get("window").width;
 // Conditionally calculate the width for desktop or browser environments
 const isWebDesktop = Platform.OS === "web" && DEVICE_WIDTH > 768; // Adjust the threshold as needed
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export default function HomeScreen() {
   const { session } = useSession(); // Get token from context
@@ -52,7 +52,7 @@ export default function HomeScreen() {
   // Fetch available models from the backend
   const fetchModels = async () => {
     try {
-      const response = await axios.get(API.URL + "/models", {
+      const response = await axios.get(API_URL + "/models", {
         headers: { "x-access-token": session?.token },
       });
       setModels(
@@ -77,7 +77,7 @@ export default function HomeScreen() {
   // Fetch prediction history from the backend
   const fetchHistory = async () => {
     try {
-      const response = await axios.get(API.URL + "/history", {
+      const response = await axios.get(API_URL + "/history", {
         headers: { "x-access-token": session?.token },
       });
       setHistory(response.data.history); // Update state with the fetched history
@@ -134,7 +134,7 @@ export default function HomeScreen() {
         image_filename: selectedImage.fileName,
         model_name: selectedModel,
       };
-      const response = await axios.post(API.URL + "/predict", payload, {
+      const response = await axios.post(API_URL + "/predict", payload, {
         headers: {
           "x-access-token": session?.token,
           "Content-Type": "application/json",
