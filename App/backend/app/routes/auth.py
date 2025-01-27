@@ -1,13 +1,15 @@
+import os
 from sqlite3 import OperationalError
 
+import datetime
+import jwt
+from app import db
+from app.models import User
 from flask import Blueprint, request, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
-from app.models import User
-from app import db
-import jwt, datetime
-import os
 
 bp = Blueprint('auth', __name__)
+
 
 @bp.route('/register', methods=['POST'])
 def register_user():
@@ -17,6 +19,7 @@ def register_user():
     db.session.add(new_user)
     db.session.commit()
     return jsonify({'message': 'User registered successfully.'})
+
 
 @bp.route('/login', methods=['POST'])
 def login_user():

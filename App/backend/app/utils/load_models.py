@@ -1,11 +1,11 @@
-import os
 import json
+import os
+
 import tensorflow as tf
 
+
 def load_models(models_folder):
-    print("Loading TensorFlow exported models, base directory:", models_folder)
     models = {}
-    print(os.listdir(models_folder))
     for model_dir in os.listdir(models_folder):
         full_model_dir = os.path.join(models_folder, model_dir)
         model_config_path = os.path.join(full_model_dir, 'model_config.json')
@@ -15,7 +15,6 @@ def load_models(models_folder):
                 config = json.load(f)
 
             model_path = os.path.join(full_model_dir, config['model_path'])
-            print(model_path)
             labels = config['labels']
             copy_red_channel = config.get('copy_red_channel', False)
             try:
@@ -28,5 +27,4 @@ def load_models(models_folder):
                 }
             except Exception as e:
                 print(f"Failed to load model {config['name']}. Error: {e}")
-    print(models)
     return models

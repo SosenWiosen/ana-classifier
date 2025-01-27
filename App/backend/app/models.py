@@ -1,11 +1,14 @@
-from app import db
 import datetime
+
+from app import db
+
 
 # User Model
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(80), nullable=False)
+
 
 # RequestLog Model
 class RequestLog(db.Model):

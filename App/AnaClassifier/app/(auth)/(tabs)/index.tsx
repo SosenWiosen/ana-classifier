@@ -140,8 +140,7 @@ export default function HomeScreen() {
           "Content-Type": "application/json",
         },
       });
-      console.log("Prediction Response:", response.data);
-      setPrediction(JSON.parse(response.data).prediction); // Show predictions
+      setPrediction(response.data.prediction); // Show predictions
       fetchHistory();
     } catch (error: any) {
       console.error("Error uploading image:", error.message);

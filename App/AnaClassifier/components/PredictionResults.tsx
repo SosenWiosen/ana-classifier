@@ -16,9 +16,6 @@ export const PredictionResults: React.FC<PredictionResultsProps> = ({
   if (!predictions || predictions.length === 0) {
     return <Text style={styles.emptyText}>No predictions to display.</Text>;
   }
-  console.log("Prediction Type:", typeof predictions);
-  console.log("Is Prediction an Array?", Array.isArray(predictions));
-  console.log("Prediction Contents:", predictions);
   return (
     <View style={styles.predictionContainer}>
       <Text style={styles.predictionTitle}>Prediction Results</Text>

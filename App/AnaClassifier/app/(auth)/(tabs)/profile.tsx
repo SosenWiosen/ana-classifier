@@ -7,38 +7,30 @@ export default function ProfileTab() {
   const { signOut, session } = useSession();
 
   const handleSignOut = () => {
-    console.log("Sign-out initialized");
-  
     if (Platform.OS === "web") {
       // Use `window.confirm` for web dialogs
-      const userConfirmed = window.confirm("Are you sure you want to sign out?");
+      const userConfirmed = window.confirm(
+        "Are you sure you want to sign out?"
+      );
       if (userConfirmed) {
-        console.log("Sign-out confirmed via web");
         signOut();
         router.replace("/login");
-      } else {
-        console.log("Sign-out canceled via web");
       }
       return; // Early return for web
     }
-  
+
     // Use native Alert for mobile platforms
-    Alert.alert(
-      "Sign Out",
-      "Are you sure you want to sign out?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Sign Out",
-          style: "destructive",
-          onPress: () => {
-            console.log("Sign-out confirmed in native alert");
-            signOut();
-            router.replace("/login");
-          },
+    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Sign Out",
+        style: "destructive",
+        onPress: () => {
+          signOut();
+          router.replace("/login");
         },
-      ]
-    );
+      },
+    ]);
   };
 
   return (

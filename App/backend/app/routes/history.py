@@ -1,13 +1,15 @@
-from flask import Blueprint, jsonify
 from app.models import RequestLog
 from app.utils.token_decorator import token_required
+from flask import Blueprint, jsonify
 
 bp = Blueprint('history', __name__)
+
 
 @bp.route('/history', methods=['GET'])
 @token_required
 def get_history(current_user):
-    logs = RequestLog.query.filter_by(user_id=current_user.id).all()
+    logs = RequestLog.query.all()
+    print("logs: " + str(logs))
     if not logs:
         return jsonify({'message': 'No history found.'}), 204
 
