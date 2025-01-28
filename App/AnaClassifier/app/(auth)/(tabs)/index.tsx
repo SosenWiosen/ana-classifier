@@ -88,17 +88,62 @@ export default function HomeScreen() {
   };
 
   // Pick an image using the image picker
+  // Pick an image or use the camera
   const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      quality: 1,
-    });
-    if (!result.canceled) {
-      setSelectedImage(result.assets[0]); // Store the selected image
-      setPrediction(null); // Reset previous predictions
-      setErrorMessage(null); // Clear error message
+    // Check if the platform is web
+    if (Platform.OS === "web") {
+      // Open the gallery directly for the web
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        setSelectedImage(result.assets[0]); // Store the selected image
+        setPrediction(null); // Reset previous predictions
+        setErrorMessage(null); // Clear error message
+      }
+      return; // Exit the function early for the web
     }
+
+    // For mobile platforms (iOS/Android), show the alert with options
+    Alert.alert("Select Image Source", "Choose the source for your image:", [
+      {
+        text: "Camera",
+        onPress: async () => {
+          const cameraResult = await ImagePicker.launchCameraAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            quality: 1,
+          });
+          if (!cameraResult.canceled) {
+            setSelectedImage(cameraResult.assets[0]); // Store the selected image
+            setPrediction(null); // Reset previous predictions
+            setErrorMessage(null); // Clear error message
+          }
+        },
+      },
+      {
+        text: "Image Library",
+        onPress: async () => {
+          const libraryResult = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            quality: 1,
+          });
+          if (!libraryResult.canceled) {
+            setSelectedImage(libraryResult.assets[0]); // Store the selected image
+            setPrediction(null); // Reset previous predictions
+            setErrorMessage(null); // Clear error message
+          }
+        },
+      },
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+    ]);
   };
 
   // Upload the picked image to the backend
