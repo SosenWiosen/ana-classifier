@@ -37,11 +37,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   historyTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "bold",
-    marginTop: 30,
+    marginTop: 10,
     marginBottom: 10,
-    marginLeft: 10, // Add some padding for the title
   },
   historyList: {
     paddingBottom: 50, // Add some space at the bottom of the list

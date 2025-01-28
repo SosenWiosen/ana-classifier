@@ -27,6 +27,7 @@ const ModelPicker: React.FC<ModelPickerProps> = ({
           selectedValue={selectedModel}
           onValueChange={onSelectModel}
           style={styles.picker}
+          itemStyle={{ color: "black" }}
           enabled={hasModels} // Disable the Picker if no models are available
         >
           {models.map((model, index) => (
@@ -40,8 +41,8 @@ const ModelPicker: React.FC<ModelPickerProps> = ({
 
 const styles = StyleSheet.create({
   picker: {
-    height: 50,
-    width: "100%",
+    color: "black", // This ensures text is visible on Android
+    backgroundColor: "white", // Helps avoid transparency issues on Android
   },
   noModelsMessage: {
     marginTop: 10,

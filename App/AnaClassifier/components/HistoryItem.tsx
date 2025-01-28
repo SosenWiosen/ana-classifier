@@ -50,7 +50,7 @@ export const HistoryItem: React.FC<HistoryItemProps> = ({
 
       {/* Other predictions */}
       {formattedOtherPredictions.length > 0 && (
-        <Text style={styles.historyText} numberOfLines={1}>
+        <Text style={styles.historyText}>
           Other Classes: {formattedOtherPredictions}
         </Text>
       )}

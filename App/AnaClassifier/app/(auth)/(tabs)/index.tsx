@@ -282,6 +282,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   container: {
+    padding: 20,
     flex: 1,
   },
   title: {
