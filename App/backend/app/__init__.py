@@ -13,7 +13,7 @@ db = SQLAlchemy()
 
 def create_app():
     app = Flask(__name__)
-    CORS(app)
+    CORS(app, resources={r"/*": {"origins": "*"}})
 
     # Load configuration from environment variables
     app.config['SECRET_KEY'] = os.getenv("SECRET_KEY")
