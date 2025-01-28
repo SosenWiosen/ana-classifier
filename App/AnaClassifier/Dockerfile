@@ -7,8 +7,8 @@ RUN rm -rf /usr/share/nginx/html/*
 # Copy the exported static files from the dist directory to Nginx's document root
 COPY dist /usr/share/nginx/html
 
-# Expose port 80 to allow web traffic
-EXPOSE 80
+# Expose is more of a documentation feature; it doesn't actually publish the port.
+EXPOSE 5001
 
 # Start Nginx when the container starts
 CMD ["nginx", "-g", "daemon off;"]
