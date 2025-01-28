@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet } from "react-native";
+import { Platform, StyleSheet } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { View } from "./Themed";
 import { Text } from "react-native";
@@ -43,6 +43,11 @@ const styles = StyleSheet.create({
   picker: {
     color: "black", // This ensures text is visible on Android
     backgroundColor: "white", // Helps avoid transparency issues on Android
+    ...(Platform.OS === "web" && {
+      // Additional styling for web
+      height: 50, // Adjust as needed
+    }),
+    borderRadius: 5,
   },
   noModelsMessage: {
     marginTop: 10,
