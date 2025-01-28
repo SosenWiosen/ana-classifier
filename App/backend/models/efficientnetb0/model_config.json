@@ -1,7 +1,17 @@
 {
-  "name": "EfficientNetB0",
+  "name": "EfficientNetB0 Confocal",
   "model_path": "efficientnetv2b0",
-  "input_shape": [260, 260],
+  "input_shape": [
+    260,
+    260
+  ],
   "copy_red_channel": true,
-  "labels": ["AC1", "AC2", "AC3", "AC4", "AC5", "AC8"]
+  "labels": [
+    "AC1",
+    "AC2",
+    "AC3",
+    "AC4",
+    "AC5",
+    "AC8"
+  ]
 }
