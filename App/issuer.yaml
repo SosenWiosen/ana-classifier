@@ -1,0 +1,15 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    # The ACME server URL for Let's Encrypt production (real SSL certificates)
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: psosna@student.agh.edu.pl # Your email for expiry notices
+    privateKeySecretRef:
+      name: letsencrypt-prod-secret
+    solvers:
+      - http01:
+          ingress:
+            class: traefik
