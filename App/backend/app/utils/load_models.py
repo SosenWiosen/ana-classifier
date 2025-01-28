@@ -13,12 +13,15 @@ def load_models(models_folder):
         if os.path.isdir(full_model_dir) and os.path.isfile(model_config_path):
             with open(model_config_path, 'r') as f:
                 config = json.load(f)
+
+            model_path = os.path.join(full_model_dir, config['model_path'])
             labels = config['labels']
             copy_red_channel = config.get('copy_red_channel', False)
             try:
                 models[config['name']] = {
                     'config': config,
                     'labels': labels,
+                    'model_path': model_path,
                     'copy_red_channel': copy_red_channel
                 }
             except Exception as e:
