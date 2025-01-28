@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: ana-api
+subsets:
+  - addresses:
+      - ip: 89.168.103.75
+    ports:
+      - port: 5001
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ana-api
+spec:
+  ports:
+    - protocol: TCP
+      port: 5001
+      targetPort: 5001
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ana-api
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+    - host: api.ana.przemeksosna.pl
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: ana-api
+              servicePort: 5001
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: ana-frontend
+subsets:
+  - addresses:
+      - ip: 89.168.103.75
+    ports:
+      - port: 5000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ana-frontend
+spec:
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ana-frontend
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+    - host: ana.przemeksosna.pl
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: ana-frontend
+              servicePort: 5000
