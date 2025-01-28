@@ -24,7 +24,7 @@ def register_user():
 @bp.route('/login', methods=['POST'])
 def login_user():
     data = request.json
-
+    print("login_user data: ", data)
     try:
         # Query the user from the database
         user = User.query.filter_by(username=data['username']).first()
@@ -44,8 +44,10 @@ def login_user():
 
     except OperationalError as e:
         # Log the error for debugging
-        return jsonify({"error": "An internal server error occurred. Please contact support."}), 500
+        print(e)
+        return jsonify({"error": "An internal server error occurred. Please contact support." }), 500
 
     except Exception as e:
+        print(e)
         # Catch any other unexpected errors
         return jsonify({"error": "An unexpected error occurred. Please try again later."}), 500
