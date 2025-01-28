@@ -1,5 +1,4 @@
 *.zip
-*.png
 *.tiff
 *.pdf
 *.obf
@@ -23,7 +22,13 @@ __pycache__/
 # Ignore Model files
 *.h5
 experiments/
+# Ignore all .png files globally
 *.png
+
+# Exclude the App directory from the ignore rule
+!/App/*.png
+!/App/**/*.png
+
 *.svg
 *.eps
 # Ignore specific script names or extensions if needed
